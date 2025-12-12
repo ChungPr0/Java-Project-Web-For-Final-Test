@@ -5,7 +5,9 @@ import StaffForm.ChangeStaffForm;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableModel;
 import java.sql.*;
+import java.util.Vector;
 
 public class DashBoard extends JFrame {
     private JPanel dashBoardTime;
@@ -13,20 +15,25 @@ public class DashBoard extends JFrame {
     private JButton staffButtonAdd;
     private JButton staffButtonChange;
     private JTextField searchBox;
+    private JTable productTable;
+    private JPanel StaffPanel;
+    private DefaultTableModel tableModel;
 
     public DashBoard(){
         super();
         this.setContentPane(dashBoardTime);
         this.setTitle("Dash Board");
-        this.setSize(400,350);
+        this.setSize(1000,500);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLocationRelativeTo(null);
+        initTable();
         addEvents();
-        read();
-
+        loadListData();
+        loadTableData();
+        StaffPanel.setVisible(true);
     }
 
-    void read() {
+    void loadListData() {
         DefaultListModel<String> model = new DefaultListModel<>();
         try (Connection con = DBConnection.getConnection()) {
 
@@ -39,6 +46,34 @@ public class DashBoard extends JFrame {
             }
 
             listStaff.setModel(model);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void loadTableData() {
+        try (Connection con = DBConnection.getConnection()) {
+            tableModel.setRowCount(0);
+
+            String sql =
+                    "SELECT p.pro_name, p.pro_price, p.pro_count, p.pro_type, s.sup_name " +
+                    "FROM Products p " +
+                    "INNER JOIN Suppliers s ON p.sup_ID = s.sup_ID";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Vector<Object> row = new Vector<>();
+
+                row.add(rs.getString("pro_name"));
+                row.add(rs.getBigDecimal("pro_price"));
+                row.add(rs.getInt("pro_count"));
+                row.add(rs.getInt("pro_type"));
+                row.add(rs.getString("sup_name"));
+
+                tableModel.addRow(row);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -75,7 +110,7 @@ public class DashBoard extends JFrame {
             private void doSearch() {
                 String key = searchBox.getText().trim();
                 if (key.isEmpty()) {
-                    read();
+                    loadListData();
                 } else {
                     searchStaff(key);
                 }
@@ -86,7 +121,7 @@ public class DashBoard extends JFrame {
             AddStaffForm addStaffForm = new AddStaffForm(this);
             addStaffForm.setVisible(true);
             if (addStaffForm.isAddedSuccess()) {
-                read();
+                loadListData();
             }
         });
 
@@ -101,10 +136,20 @@ public class DashBoard extends JFrame {
             changeStaffForm.setVisible(true);
 
             if (changeStaffForm.isChangedSuccess()) {
-                read();
+                loadListData();
             }
 
         });
+    }
+
+    private void initTable() {
+        tableModel = new DefaultTableModel();
+        tableModel.addColumn("Tên Sản Phẩm");
+        tableModel.addColumn("Giá Tiền");
+        tableModel.addColumn("Số Lượng");
+        tableModel.addColumn("Loại");
+        tableModel.addColumn("Nhà Cung Cấp");
+        productTable.setModel(tableModel);
     }
 
     public static void main(String[] args) {

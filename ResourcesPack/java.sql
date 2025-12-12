@@ -68,8 +68,6 @@ CREATE TABLE Accounts (
 INSERT INTO Accounts (acc_name, acc_pass) 
 VALUES ('admin', '12345678');
 
-INSERT INTO Staffs (sta_name, sta_date_of_birth, sta_phone, sta_address)
-VALUES 
 INSERT INTO Staffs (sta_name, sta_date_of_birth, sta_phone, sta_address) VALUES
 (N'Trần Thị Hoa', '1992-08-21', '0902345678', N'Hồ Chí Minh'),
 (N'Lê Văn Bình', '1988-12-05', '0913456789', N'Đà Nẵng'),
