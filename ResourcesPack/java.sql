@@ -98,3 +98,14 @@ INSERT INTO Staffs (sta_name, sta_date_of_birth, sta_phone, sta_address) VALUES
 (N'Chu Thị Nhung', '1998-07-15', '0980099112', N'Tuyên Quang'),
 (N'Trần Minh Quân', '1991-03-27', '0903344556', N'Yên Bái'),
 (N'Lã Thị Hương', '1996-10-08', '0914455667', N'Bắc Giang');
+
+-- Thêm Nhà cung cấp
+INSERT INTO Suppliers (sup_name, sup_address, sup_phone) VALUES
+('Công ty ABC', 'Hà Nội', '0901234567'),
+('Kho Hàng XYZ', 'TP.HCM', '0987654321');
+
+-- Thêm Sản phẩm (Liên kết với NCC qua sup_ID)
+INSERT INTO Products (pro_name, pro_price, pro_count, pro_type, sup_ID) VALUES
+(N'Laptop Dell', 15000000, 10, 1, 1), -- ID 1 là Cty ABC
+(N'Chuột Logitech', 250000, 50, 2, 1),
+(N'Bàn phím cơ', 800000, 20, 2, 2); -- ID 2 là Kho XYZ
