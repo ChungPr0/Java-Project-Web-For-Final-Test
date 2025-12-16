@@ -403,5 +403,5 @@ Khởi động phần mềm và sử dụng các tài khoản mặc định sau 
 
 <div style="text-align: center;">
 <b>© 2025 Copyright by Chung. All rights reserved.</b><br>
-<i>Designed with ❤️ using Java Swing & MySQL.</i>
+<i>Designed with using Java Swing & MySQL.</i>
 </div>
