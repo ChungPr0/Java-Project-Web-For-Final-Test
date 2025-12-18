@@ -1,14 +1,14 @@
 package Main;
 
-import CustomerForm.CustomerManagerPanel;
-import HomeForm.HomeManagerPanel;
-import InvoiceForm.InvoiceManagerPanel;
+import Main.HomeManager.HomeManagerPanel;
+import Main.StaffManager.StaffManagerPanel;
+import Main.SupplierManager.SupplierManagerPanel;
+import Main.CustomerManager.CustomerManagerPanel;
+import Main.ProductManager.ProductManagerPanel;
+import Main.InvoiceManager.InvoiceManagerPanel;
+import Main.LoginManager.LoginForm;
+import Main.LoginManager.ChangePasswordDialog;
 import JDBCUtils.Session;
-import Main.Login.ChangePasswordDialog;
-import Main.Login.LoginForm;
-import ProductForm.ProductManagerPanel;
-import StaffForm.StaffManagerPanel;
-import SupplierForm.SupplierManagerPanel;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -297,6 +297,7 @@ public class DashBoard extends JFrame {
         pContent.add(btnChangePass);
         pContent.add(Box.createVerticalStrut(10));
         pContent.add(btnLogout);
+        pContent.add(Box.createVerticalStrut(5));
 
         popupProfile.add(pContent);
 

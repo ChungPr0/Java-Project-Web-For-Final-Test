@@ -1,4 +1,4 @@
-import Main.Login.LoginForm;
+import Main.LoginManager.LoginForm;
 import JDBCUtils.DBConnection;
 
 import javax.swing.*;
@@ -29,12 +29,24 @@ public class Run {
             // Mục đích: Mặc định Java Swing làm mờ chữ (màu xám) khi setEnabled(false).
             // Đoạn này ép nó hiển thị màu Đen để người dùng vẫn đọc được rõ ràng.
             Color black = Color.BLACK;
+            Color white = Color.WHITE;
+
             UIManager.put("TextField.inactiveForeground", black);      // TextField không focus
             UIManager.put("TextField.disabledTextColor", black);       // TextField bị disable
             UIManager.put("FormattedTextField.inactiveForeground", black);
             UIManager.put("PasswordField.inactiveForeground", black);  // Mật khẩu
             UIManager.put("TextArea.inactiveForeground", black);       // Vùng văn bản
             UIManager.put("ComboBox.disabledForeground", black);       // ComboBox
+
+            UIManager.put("TextField.disabledBackground", white);          // TextField
+            UIManager.put("FormattedTextField.disabledBackground", white); // Ô nhập số/ngày
+            UIManager.put("PasswordField.disabledBackground", white);      // Ô mật khẩu
+            UIManager.put("TextArea.disabledBackground", white);           // Vùng văn bản lớn
+            UIManager.put("ComboBox.disabledBackground", white);           // ComboBox
+            UIManager.put("ScrollPane.disabledBackground", white);         // Cuộn trang
+            UIManager.put("EditorPane.disabledBackground", white);         // EditorPane
+            UIManager.put("TextField.inactiveBackground", white);
+            UIManager.put("TextArea.inactiveBackground", white);
 
             // Màu chữ của Button khi bị disable (giữ màu xám cho nút bấm là hợp lý)
             UIManager.put("Button.disabledText", Color.GRAY);

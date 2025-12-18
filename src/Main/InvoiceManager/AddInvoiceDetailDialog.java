@@ -1,4 +1,4 @@
-package InvoiceForm;
+package Main.InvoiceManager;
 
 import JDBCUtils.ComboItem;
 import JDBCUtils.DBConnection;

@@ -1,4 +1,4 @@
-package HomeForm.Charts;
+package Main.HomeManager.Charts;
 
 import JDBCUtils.DBConnection;
 

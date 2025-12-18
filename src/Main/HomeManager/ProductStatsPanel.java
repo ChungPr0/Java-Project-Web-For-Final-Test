@@ -1,6 +1,6 @@
-package HomeForm;
+package Main.HomeManager;
 
-import HomeForm.Charts.PieChartPanel;
+import Main.HomeManager.Charts.PieChartPanel;
 import JDBCUtils.DBConnection;
 import Main.DashBoard;
 

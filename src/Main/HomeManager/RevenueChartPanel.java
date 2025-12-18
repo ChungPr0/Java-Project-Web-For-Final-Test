@@ -1,4 +1,4 @@
-package HomeForm;
+package Main.HomeManager;
 
 import JDBCUtils.DBConnection;
 

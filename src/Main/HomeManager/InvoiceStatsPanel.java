@@ -1,4 +1,4 @@
-package HomeForm;
+package Main.HomeManager;
 
 import JDBCUtils.DBConnection;
 import Main.DashBoard;
@@ -44,7 +44,7 @@ public class InvoiceStatsPanel extends JPanel {
         JPanel pTable;
         if (JDBCUtils.Session.isAdmin()) {
             JButton btnExport = createSmallButton("Xuất Excel", Color.decode("#1D6F42"));
-            btnExport.setPreferredSize(new Dimension(100, 30));
+            btnExport.setPreferredSize(new Dimension(100, 35));
             btnExport.addActionListener(_ -> exportToExcel(table, "Danh_sach_top_hoa_don_7_ngay_gan_nhat"));
             pTable = createTableWithLabel(table, "TOP HÓA ĐƠN TỔNG TIỀN NHIỀU NHẤT 7 NGÀY QUA", btnExport);
         } else {
@@ -107,8 +107,8 @@ public class InvoiceStatsPanel extends JPanel {
                         int invID = Integer.parseInt(table.getValueAt(row, 1).toString());
 
                         Window win = SwingUtilities.getWindowAncestor(InvoiceStatsPanel.this);
-                        if (win instanceof DashBoard dashboard) {
-                            dashboard.showInvoiceAndLoad(invID);
+                        if (win instanceof DashBoard) {
+                            ((DashBoard) win).showInvoiceAndLoad(invID);
                         }
                     } catch (Exception ex) {
                         showError(InvoiceStatsPanel.this, "Lỗi: " + ex.getMessage());

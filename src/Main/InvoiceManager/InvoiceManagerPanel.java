@@ -1,7 +1,8 @@
-package InvoiceForm;
+package Main.InvoiceManager;
 
 import JDBCUtils.ComboItem;
 import JDBCUtils.DBConnection;
+import Main.CustomerManager.AddCustomerDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -17,18 +18,10 @@ import static JDBCUtils.Style.*;
 
 /**
  * Panel quản lý Hóa đơn (Bán hàng).
- * <br>
- * Chức năng chính:
- * <ul>
- * <li>Xem danh sách hóa đơn, lọc, tìm kiếm.</li>
- * <li>Tạo mới hóa đơn (Gồm Header và Detail - Sản phẩm).</li>
- * <li>Cập nhật, Xóa hóa đơn (Có xử lý trừ/hoàn kho tự động).</li>
- * <li>In hóa đơn ra dạng View cơ bản.</li>
- * </ul>
  */
 public class InvoiceManagerPanel extends JPanel {
 
-    // --- 1. KHAI BÁO BIẾN GIAO DIỆN (COMPONENTS) ---
+    // --- 1. KHAI BÁO BIẾN GIAO DIỆN ---
     private JList<ComboItem> listInvoice;
     private JTextField txtSearch, txtTotalMoney, txtID, txtDate;
     private JComboBox<ComboItem> cbCustomer, cbStaff;
@@ -43,18 +36,18 @@ public class InvoiceManagerPanel extends JPanel {
     private DefaultTableModel detailModel;
     private JButton btnAddDetail, btnEditDetail, btnDelDetail;
 
-    // --- 2. BIẾN TRẠNG THÁI (STATE VARIABLES) ---
+    // --- 2. BIẾN TRẠNG THÁI ---
     private int currentSortIndex = 0;
     private final String[] sortModes = {"NEW", "OLD", "PUP", "PDW"};
-    private int selectedInvID = -1;        // ID hóa đơn đang chọn (-1 là chưa chọn)
-    private boolean isDataLoading = false; // Cờ chặn sự kiện khi đang đổ dữ liệu
+    private int selectedInvID = -1;        // ID hóa đơn đang chọn
+    private boolean isDataLoading = false; // Cờ chặn sự kiện
 
     public InvoiceManagerPanel() {
-        initUI();               // 1. Dựng giao diện
-        loadComboBoxData();     // 2. Nạp dữ liệu Khách hàng, Nhân viên
-        loadListData();         // 3. Nạp danh sách Hóa đơn
-        addEvents();            // 4. Gán sự kiện
-        addChangeListeners();   // 5. Theo dõi thay đổi
+        initUI();
+        loadComboBoxData();
+        loadListData();
+        addEvents();
+        addChangeListeners();
     }
 
     // =================================================================================
@@ -94,7 +87,7 @@ public class InvoiceManagerPanel extends JPanel {
 
         // Các trường thông tin chung (Header)
         txtID = new JTextField();
-        txtID.setEnabled(false);
+        txtID.setEnabled(false); // Disable nhưng nền vẫn trắng nhờ UIManager
         txtID.setFocusable(false);
         rightPanel.add(createTextFieldWithLabel(txtID, "Mã Hóa Đơn: "));
         rightPanel.add(Box.createVerticalStrut(10));
@@ -106,7 +99,7 @@ public class InvoiceManagerPanel extends JPanel {
         rightPanel.add(Box.createVerticalStrut(10));
 
         cbCustomer = new JComboBox<>();
-        btnQuickAddCustomer = createSmallButton("Thêm", Color.LIGHT_GRAY);
+        btnQuickAddCustomer = createSmallButton("Mới", Color.GRAY);
         rightPanel.add(createComboBoxWithLabel(cbCustomer, "Khách Hàng:", btnQuickAddCustomer));
         rightPanel.add(Box.createVerticalStrut(10));
 
@@ -118,51 +111,37 @@ public class InvoiceManagerPanel extends JPanel {
         txtTotalMoney.setEnabled(false);
         txtTotalMoney.setFocusable(false);
         rightPanel.add(createTextFieldWithLabel(txtTotalMoney, "Tổng Tiền (VND):"));
-        rightPanel.add(Box.createVerticalStrut(5));
+        rightPanel.add(Box.createVerticalStrut(15)); // Tăng khoảng cách chút
 
         // --- C. BẢNG CHI TIẾT SẢN PHẨM (DETAIL TABLE) ---
-        JPanel pTableControl = new JPanel(new BorderLayout());
-        pTableControl.setBackground(Color.WHITE);
-        pTableControl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
-        JLabel lblTable = createHeaderLabel("Danh sách sản phẩm:");
-        lblTable.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        // 1. Tạo các nút chức năng nhỏ cho bảng
+        btnAddDetail = createSmallButton("Thêm", Color.GRAY);
+        btnEditDetail = createSmallButton("Sửa", Color.GRAY);
+        btnDelDetail = createSmallButton("Xóa", Color.GRAY);
+        setDetailButtonsVisible(false); // Mặc định ẩn
 
-        JPanel pSmallBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-        pSmallBtns.setBackground(Color.WHITE);
-
-        btnAddDetail = createSmallButton("THÊM", Color.LIGHT_GRAY);
-        btnEditDetail = createSmallButton("SỬA", Color.LIGHT_GRAY);
-        btnDelDetail = createSmallButton("XÓA", Color.LIGHT_GRAY);
-
-        pSmallBtns.add(btnAddDetail);
-        pSmallBtns.add(btnEditDetail);
-        pSmallBtns.add(btnDelDetail);
-        setDetailButtonsVisible(false);
-
-        pTableControl.add(lblTable, BorderLayout.WEST);
-        pTableControl.add(pSmallBtns, BorderLayout.EAST);
-
-        rightPanel.add(pTableControl);
-        rightPanel.add(Box.createVerticalStrut(5));
-
-        // Cấu hình bảng
+        // 2. Cấu hình Model và Bảng
         String[] columns = {"ID SP", "Tên Sản Phẩm", "Đơn Giá", "Số Lượng", "Thành Tiền"};
         detailModel = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
         tableDetails = new JTable(detailModel);
-        tableDetails.setRowHeight(25);
-        tableDetails.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
-        // Ẩn cột ID SP
+        // 3. Ẩn cột ID SP (Cột 0)
         tableDetails.getColumnModel().getColumn(0).setMinWidth(0);
         tableDetails.getColumnModel().getColumn(0).setMaxWidth(0);
         tableDetails.getColumnModel().getColumn(0).setWidth(0);
 
-        JScrollPane scrollPane = new JScrollPane(tableDetails);
-        scrollPane.setPreferredSize(new Dimension(0, 150));
-        rightPanel.add(scrollPane);
+        // 4. Sử dụng hàm createTableWithLabel
+        // Hàm này sẽ tự bọc ScrollPane, tạo Header viền xám và gắn các nút vào
+        JPanel pTable = createTableWithLabel(
+                tableDetails,
+                "DANH SÁCH SẢN PHẨM TRONG HÓA ĐƠN",
+                btnAddDetail, btnEditDetail, btnDelDetail
+        );
+
+        rightPanel.add(pTable);
         rightPanel.add(Box.createVerticalStrut(15));
 
         // --- D. KHU VỰC NÚT CHỨC NĂNG CHÍNH ---
@@ -185,7 +164,7 @@ public class InvoiceManagerPanel extends JPanel {
 
         rightPanel.add(buttonPanel);
 
-        // Tạo thanh cuộn cho panel phải phòng trường hợp màn hình bé
+        // Tạo thanh cuộn cho panel phải
         JScrollPane rightScrollPane = new JScrollPane(rightPanel);
         rightScrollPane.setBorder(null);
         rightScrollPane.getVerticalScrollBar().setUnitIncrement(16);
@@ -199,13 +178,9 @@ public class InvoiceManagerPanel extends JPanel {
     }
 
     // =================================================================================
-    //                           PHẦN 2: TẢI DỮ LIỆU (DATA LOADING)
+    //                           PHẦN 2: TẢI DỮ LIỆU
     // =================================================================================
 
-    /**
-     * Tải danh sách Khách hàng và Nhân viên vào ComboBox.
-     * Tự động chọn nhân viên đang đăng nhập.
-     */
     private void loadComboBoxData() {
         try (Connection con = DBConnection.getConnection()) {
             isDataLoading = true;
@@ -222,13 +197,7 @@ public class InvoiceManagerPanel extends JPanel {
             // Auto select logged-in staff
             if (JDBCUtils.Session.isLoggedIn) {
                 int myID = JDBCUtils.Session.loggedInStaffID;
-                for (int i = 0; i < cbStaff.getItemCount(); i++) {
-                    ComboItem item = cbStaff.getItemAt(i);
-                    if (item.getValue() == myID) {
-                        cbStaff.setSelectedIndex(i);
-                        break;
-                    }
-                }
+                setSelectedComboItem(cbStaff, myID);
             }
         } catch (Exception e) {
             showError(this, "Lỗi: " + e.getMessage());
@@ -237,10 +206,6 @@ public class InvoiceManagerPanel extends JPanel {
         }
     }
 
-    /**
-     * Tải danh sách Hóa đơn vào JList (Panel trái).
-     * Có hỗ trợ tìm kiếm và sắp xếp.
-     */
     private void loadListData() {
         DefaultListModel<ComboItem> model = new DefaultListModel<>();
 
@@ -285,15 +250,10 @@ public class InvoiceManagerPanel extends JPanel {
         }
     }
 
-    /**
-     * Tải chi tiết 1 hóa đơn (Thông tin chung + Danh sách sản phẩm).
-     * @param invID ID của hóa đơn cần xem
-     */
     public void loadDetail(int invID) {
         isDataLoading = true;
         try (Connection con = DBConnection.getConnection()) {
             DecimalFormat df = new DecimalFormat("#,###");
-            // 1. Tải thông tin chung (Header)
             String sql = "SELECT * FROM Invoices WHERE inv_ID = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, invID);
@@ -312,7 +272,6 @@ public class InvoiceManagerPanel extends JPanel {
                 btnSave.setVisible(false);
                 btnPrint.setVisible(true);
 
-                // Phân quyền Admin mới được sửa/xóa hóa đơn
                 if (JDBCUtils.Session.isAdmin()) {
                     enableForm(true);
                     btnSave.setText("Lưu thay đổi");
@@ -325,7 +284,6 @@ public class InvoiceManagerPanel extends JPanel {
                 }
             }
 
-            // 2. Tải chi tiết sản phẩm (Details)
             detailModel.setRowCount(0);
             String sqlDetail = "SELECT p.pro_ID, p.pro_name, d.unit_price, p.pro_price, d.ind_count " +
                     "FROM Invoice_details d JOIN Products p ON d.pro_ID = p.pro_ID WHERE d.inv_ID = ?";
@@ -334,7 +292,6 @@ public class InvoiceManagerPanel extends JPanel {
             ResultSet rsDetail = psDetail.executeQuery();
 
             while (rsDetail.next()) {
-                // Ưu tiên lấy unit_price trong Invoice_details. Nếu = 0 (hóa đơn cũ) thì lấy pro_price
                 double historicalPrice = rsDetail.getDouble("unit_price");
                 double currentPrice = rsDetail.getDouble("pro_price");
                 double finalPrice = (historicalPrice > 0) ? historicalPrice : currentPrice;
@@ -343,7 +300,7 @@ public class InvoiceManagerPanel extends JPanel {
                 detailModel.addRow(new Object[]{
                         rsDetail.getInt("pro_ID"),
                         rsDetail.getString("pro_name"),
-                        df.format(finalPrice), // Hiển thị giá lịch sử
+                        df.format(finalPrice),
                         count,
                         df.format(finalPrice * count)
                 });
@@ -358,10 +315,9 @@ public class InvoiceManagerPanel extends JPanel {
     }
 
     // =================================================================================
-    //                           PHẦN 3: XỬ LÝ SỰ KIỆN (EVENTS)
+    //                           PHẦN 3: XỬ LÝ SỰ KIỆN
     // =================================================================================
     private void addEvents() {
-        // Sự kiện chọn hóa đơn trong list
         listInvoice.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 ComboItem selected = listInvoice.getSelectedValue();
@@ -373,43 +329,25 @@ public class InvoiceManagerPanel extends JPanel {
             }
         });
 
-        // Sự kiện tìm kiếm
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { loadListData(); }
             public void removeUpdate(DocumentEvent e) { loadListData(); }
             public void changedUpdate(DocumentEvent e) { loadListData(); }
         });
 
-        // Sự kiện sắp xếp
         btnSort.addActionListener(_ -> {
             currentSortIndex++;
-            if (currentSortIndex >= sortModes.length) {
-                currentSortIndex = 0;
-            }
+            if (currentSortIndex >= sortModes.length) currentSortIndex = 0;
             btnSort.setText(sortModes[currentSortIndex]);
-            // Tooltip
-            switch (currentSortIndex) {
-                case 0: btnSort.setToolTipText("Đang xếp: Mới nhất trước"); break;
-                case 1: btnSort.setToolTipText("Đang xếp: Cũ nhất trước"); break;
-                case 2: btnSort.setToolTipText("Đang xếp: Giá thấp đến cao"); break;
-                case 3: btnSort.setToolTipText("Đang xếp: Giá cao đến thấp"); break;
-            }
             loadListData();
         });
 
-        // Nút TẠO MỚI (Chuẩn bị form để nhập liệu)
         btnAdd.addActionListener(_ -> {
             clearForm();
             enableForm(true);
             setDetailButtonsVisible(true);
-
-            // Nếu không phải Admin thì không cho đổi nhân viên bán (lấy chính user đó)
-            if (!JDBCUtils.Session.isAdmin()) {
-                cbStaff.setEnabled(false);
-            }
-
-            selectedInvID = -1; // Đánh dấu là đang tạo mới
-
+            if (!JDBCUtils.Session.isAdmin()) cbStaff.setEnabled(false);
+            selectedInvID = -1;
             btnSave.setText("Lưu hóa đơn");
             btnSave.setVisible(true);
             btnAdd.setVisible(false);
@@ -417,46 +355,35 @@ public class InvoiceManagerPanel extends JPanel {
             btnPrint.setVisible(false);
         });
 
-        // Nút XÓA SẢN PHẨM KHỎI BẢNG
         btnDelDetail.addActionListener(_ -> {
             int row = tableDetails.getSelectedRow();
-            if (row != -1) {
-                detailModel.removeRow(row);
-                calculateUITotal();
-                btnSave.setVisible(true);
-            }
+            if (row == -1) { showError(this, "Chọn 1 sản phẩm để xóa!"); return; }
+            detailModel.removeRow(row);
+            calculateUITotal();
+            btnSave.setVisible(true);
         });
 
-        // Nút SỬA SẢN PHẨM TRONG BẢNG
         btnEditDetail.addActionListener(_ -> {
             int row = tableDetails.getSelectedRow();
-            if (row == -1) return;
+            if (row == -1) { showError(this, "Chọn 1 sản phẩm để sửa!"); return; }
 
             int proID = Integer.parseInt(detailModel.getValueAt(row, 0).toString());
             String name = tableDetails.getValueAt(row, 1).toString();
             int currentQtyUI = Integer.parseInt(tableDetails.getValueAt(row, 3).toString());
-
-            // Lấy tồn kho tối đa (Tồn trong DB + Số lượng đang giữ trong hóa đơn này)
             int maxLimit = 0;
+
             try (Connection con = DBConnection.getConnection()) {
                 int stockInDB = getProductStock(con, proID);
                 int qtySavedInDB = 0;
-
                 if (selectedInvID != -1) {
                     String sql = "SELECT ind_count FROM Invoice_details WHERE inv_ID=? AND pro_ID=?";
                     PreparedStatement ps = con.prepareStatement(sql);
-                    ps.setInt(1, selectedInvID);
-                    ps.setInt(2, proID);
+                    ps.setInt(1, selectedInvID); ps.setInt(2, proID);
                     ResultSet rs = ps.executeQuery();
-                    if (rs.next()) {
-                        qtySavedInDB = rs.getInt("ind_count");
-                    }
+                    if (rs.next()) qtySavedInDB = rs.getInt("ind_count");
                 }
                 maxLimit = stockInDB + qtySavedInDB;
-
-            } catch(Exception ex) {
-                showError(this, "Lỗi: " + ex.getMessage());
-            }
+            } catch(Exception ex) { showError(this, "Lỗi: " + ex.getMessage()); }
 
             JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
             EditInvoiceDetailDialog dialog = new EditInvoiceDetailDialog(parent, name, currentQtyUI, maxLimit);
@@ -465,17 +392,14 @@ public class InvoiceManagerPanel extends JPanel {
             if (dialog.isConfirmed()) {
                 int newQty = dialog.getNewQuantity();
                 detailModel.setValueAt(newQty, row, 3);
-
                 double price = parseMoney(tableDetails.getValueAt(row, 2).toString());
                 DecimalFormat df = new DecimalFormat("#,###");
                 detailModel.setValueAt(df.format(price * newQty), row, 4);
-
                 calculateUITotal();
                 btnSave.setVisible(true);
             }
         });
 
-        // Nút THÊM SẢN PHẨM VÀO BẢNG
         btnAddDetail.addActionListener(_ -> {
             JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
             AddInvoiceDetailDialog dialog = new AddInvoiceDetailDialog(parent);
@@ -486,24 +410,20 @@ public class InvoiceManagerPanel extends JPanel {
                     ComboItem item = dialog.getSelectedProduct();
                     int qtyInput = dialog.getSelectedQty();
                     int proID = item.getValue();
-
                     int stockDB = getProductStock(con, proID);
 
-                    // Kiểm tra xem sản phẩm này đã có trong bảng chưa để cộng dồn
                     int currentQtyInTable = 0;
                     int rowExist = -1;
-
                     for(int i=0; i<detailModel.getRowCount(); i++) {
                         int idOnTable = Integer.parseInt(detailModel.getValueAt(i, 0).toString());
                         if(idOnTable == proID) {
                             currentQtyInTable = Integer.parseInt(detailModel.getValueAt(i, 3).toString());
-                            rowExist = i;
-                            break;
+                            rowExist = i; break;
                         }
                     }
 
                     if (currentQtyInTable + qtyInput > stockDB) {
-                        showError(this, "Tổng số lượng vượt quá tồn kho (" + stockDB + ")!");
+                        showError(this, "Vượt quá tồn kho (" + stockDB + ")!");
                         return;
                     }
 
@@ -511,51 +431,42 @@ public class InvoiceManagerPanel extends JPanel {
                     DecimalFormat df = new DecimalFormat("#,###");
 
                     if(rowExist != -1) {
-                        // Nếu đã có -> Cộng dồn
                         int newTotal = currentQtyInTable + qtyInput;
                         detailModel.setValueAt(newTotal, rowExist, 3);
                         detailModel.setValueAt(df.format(price * newTotal), rowExist, 4);
                     } else {
-                        // Nếu chưa có -> Thêm dòng mới
                         String cleanName = item.toString().split(" \\(")[0];
                         detailModel.addRow(new Object[]{ proID, cleanName, df.format(price), qtyInput, df.format(price * qtyInput) });
                     }
-
                     calculateUITotal();
                     btnSave.setVisible(true);
-
-                } catch (Exception ex) {
-                    showError(this, "Lỗi: " + ex.getMessage());
-                }
+                } catch (Exception ex) { showError(this, "Lỗi: " + ex.getMessage()); }
             }
         });
 
-        // Nút LƯU (Quan trọng nhất)
         btnSave.addActionListener(_ -> {
-            if (detailModel.getRowCount() == 0) {
-                showError(this, "Chưa có sản phẩm nào!");
-                return;
-            }
+            if (detailModel.getRowCount() == 0) { showError(this, "Chưa có sản phẩm nào!"); return; }
             if (selectedInvID == -1) createNewInvoice();
             else saveChangesToDatabase();
         });
 
-        // Nút THÊM NHANH KHÁCH HÀNG
+        // Nút thêm nhanh khách hàng
         btnQuickAddCustomer.addActionListener(_ -> {
             JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
-            CustomerForm.AddCustomerForm addForm = new CustomerForm.AddCustomerForm(parent);
-            addForm.setVisible(true);
+            AddCustomerDialog dialog = new AddCustomerDialog(parent);
+            dialog.setVisible(true);
 
-            if (addForm.isAddedSuccess()) {
-                loadComboBoxData();
-                if (cbCustomer.getItemCount() > 0) {
-                    cbCustomer.setSelectedIndex(cbCustomer.getItemCount() - 1);
+            if (dialog.isAddedSuccess()) {
+                loadComboBoxData(); // Tải lại danh sách
+                // Lấy ID mới và chọn nó
+                int newID = dialog.getNewCustomerID();
+                if (newID != -1) {
+                    setSelectedComboItem(cbCustomer, newID);
                 }
                 showSuccess(this, "Đã cập nhật danh sách khách hàng!");
             }
         });
 
-        // Nút XÓA HÓA ĐƠN
         btnDelete.addActionListener(_ -> {
             if (selectedInvID == -1) return;
             if (showConfirm(this, "Xóa hóa đơn #" + selectedInvID + "? Hàng sẽ được hoàn kho.")) {
@@ -563,27 +474,19 @@ public class InvoiceManagerPanel extends JPanel {
             }
         });
 
-        // Nút IN HÓA ĐƠN
         btnPrint.addActionListener(_ -> printInvoice());
     }
 
     // =================================================================================
-    //                           PHẦN 4: NGHIỆP VỤ & DATABASE (LOGIC CORE)
+    //                           PHẦN 4: LOGIC DATABASE
     // =================================================================================
 
-    /**
-     * Tạo hóa đơn mới (Transactional).
-     * 1. Insert Invoices (Header) -> Lấy ID vừa tạo.
-     * 2. Insert Invoice_details (Danh sách SP).
-     * 3. Update Products (Trừ kho).
-     */
     private void createNewInvoice() {
         Connection con = null;
         try {
             con = DBConnection.getConnection();
-            con.setAutoCommit(false); // Bắt đầu giao dịch
+            con.setAutoCommit(false);
 
-            // B1: Insert Header
             String sqlInv = "INSERT INTO Invoices (cus_ID, sta_ID, inv_price) VALUES (?, ?, ?)";
             PreparedStatement psInv = con.prepareStatement(sqlInv, Statement.RETURN_GENERATED_KEYS);
             ComboItem cus = (ComboItem) cbCustomer.getSelectedItem();
@@ -595,12 +498,10 @@ public class InvoiceManagerPanel extends JPanel {
             psInv.setDouble(3, total);
             psInv.executeUpdate();
 
-            // Lấy ID hóa đơn vừa sinh ra
             ResultSet rsKeys = psInv.getGeneratedKeys();
             int newInvID = 0;
             if (rsKeys.next()) newInvID = rsKeys.getInt(1);
 
-            // B2 & B3: Insert Details & Trừ kho
             String sqlDetail = "INSERT INTO Invoice_details (inv_ID, pro_ID, ind_count, unit_price) VALUES (?, ?, ?, ?)";
             String sqlStock = "UPDATE Products SET pro_count = pro_count - ? WHERE pro_ID = ?";
             PreparedStatement psDetail = con.prepareStatement(sqlDetail);
@@ -610,66 +511,40 @@ public class InvoiceManagerPanel extends JPanel {
                 int proID = Integer.parseInt(detailModel.getValueAt(i, 0).toString());
                 int qty = Integer.parseInt(detailModel.getValueAt(i, 3).toString());
                 int currentStock = getProductStock(con, proID);
-
-                // Kiểm tra lại tồn kho lần cuối trước khi chốt
                 if (currentStock < qty) throw new Exception("Sản phẩm ID " + proID + " không đủ hàng.");
-
-                // Lấy giá hiện tại của sản phẩm để lưu snapshot
                 double currentPrice = getProductPrice(proID);
 
-                // Thêm chi tiết
                 psDetail.setInt(1, newInvID);
                 psDetail.setInt(2, proID);
                 psDetail.setInt(3, qty);
-                psDetail.setDouble(4, currentPrice); // Lưu giá lúc bán
+                psDetail.setDouble(4, currentPrice);
                 psDetail.executeUpdate();
 
-                // Trừ kho
                 psStock.setInt(1, qty); psStock.setInt(2, proID);
                 psStock.executeUpdate();
             }
 
-            con.commit(); // Thành công -> Lưu vào DB
+            con.commit();
             showSuccess(this, "Tạo hóa đơn thành công! Mã: #" + newInvID);
             loadListData();
 
             // Chọn lại hóa đơn vừa tạo
-            for (int i = 0; i < listInvoice.getModel().getSize(); i++) {
-                ComboItem item = listInvoice.getModel().getElementAt(i);
-                if (item.getValue() == newInvID) {
-                    listInvoice.setSelectedIndex(i);
-                    break;
-                }
-            }
-            loadDetail(newInvID);
+            selectInvoiceByID(newInvID);
 
         } catch (Exception ex) {
-            try { if(con!=null) con.rollback(); } catch(Exception e) {
-                showError(this, "Lỗi: " + ex.getMessage());
-            }
+            try { if(con!=null) con.rollback(); } catch(Exception _) {}
             showError(this, "Lỗi tạo: " + ex.getMessage());
         } finally {
-            try { if(con!=null) { con.setAutoCommit(true); con.close(); } } catch(Exception e) {
-                showError(this, "Lỗi: " + e.getMessage());
-            }
+            try { if(con!=null) { con.setAutoCommit(true); con.close(); } } catch(Exception _) {}
         }
     }
 
-    /**
-     * Cập nhật hóa đơn (Transactional).
-     * 1. Hoàn kho các sản phẩm cũ.
-     * 2. Xóa sạch chi tiết cũ.
-     * 3. Thêm chi tiết mới (từ bảng trên giao diện).
-     * 4. Trừ kho theo chi tiết mới.
-     * 5. Cập nhật Header (Tổng tiền, khách hàng...).
-     */
     private void saveChangesToDatabase() {
         Connection con = null;
         try {
             con = DBConnection.getConnection();
-            con.setAutoCommit(false); // Bắt đầu giao dịch
+            con.setAutoCommit(false);
 
-            // B1: Hoàn kho cũ
             String sqlOld = "SELECT pro_ID, ind_count FROM Invoice_details WHERE inv_ID = ?";
             PreparedStatement psOld = con.prepareStatement(sqlOld);
             psOld.setInt(1, selectedInvID);
@@ -681,12 +556,10 @@ public class InvoiceManagerPanel extends JPanel {
                 psRestock.executeUpdate();
             }
 
-            // B2: Xóa chi tiết cũ
             PreparedStatement psDel = con.prepareStatement("DELETE FROM Invoice_details WHERE inv_ID = ?");
             psDel.setInt(1, selectedInvID);
             psDel.executeUpdate();
 
-            // B3 & B4: Insert chi tiết mới & Trừ kho lại
             String sqlIns = "INSERT INTO Invoice_details (inv_ID, pro_ID, ind_count, unit_price) VALUES (?, ?, ?, ?)";
             String sqlDed = "UPDATE Products SET pro_count = pro_count - ? WHERE pro_ID = ?";
             PreparedStatement psIns = con.prepareStatement(sqlIns);
@@ -695,24 +568,20 @@ public class InvoiceManagerPanel extends JPanel {
             for (int i = 0; i < detailModel.getRowCount(); i++) {
                 int proID = Integer.parseInt(detailModel.getValueAt(i, 0).toString());
                 int qty = Integer.parseInt(detailModel.getValueAt(i, 3).toString());
-
-                // Lấy giá đang hiển thị trên Table (đây là giá lịch sử hoặc giá đã điều chỉnh)
                 double priceOnTable = parseMoney(detailModel.getValueAt(i, 2).toString());
-
                 int currentStock = getProductStock(con, proID);
                 if (currentStock < qty) throw new Exception("Sản phẩm ID " + proID + " không đủ hàng.");
 
                 psIns.setInt(1, selectedInvID);
                 psIns.setInt(2, proID);
                 psIns.setInt(3, qty);
-                psIns.setDouble(4, priceOnTable); // Lưu lại giá này vào DB
+                psIns.setDouble(4, priceOnTable);
                 psIns.executeUpdate();
 
                 psDed.setInt(1, qty); psDed.setInt(2, proID);
                 psDed.executeUpdate();
             }
 
-            // B5: Update Header
             String sqlHead = "UPDATE Invoices SET cus_ID=?, sta_ID=?, inv_price=? WHERE inv_ID=?";
             PreparedStatement psHead = con.prepareStatement(sqlHead);
             ComboItem cus = (ComboItem) cbCustomer.getSelectedItem();
@@ -727,7 +596,10 @@ public class InvoiceManagerPanel extends JPanel {
 
             con.commit();
             showSuccess(this, "Cập nhật thành công!");
-            loadDetail(selectedInvID);
+
+            // Load lại list nhưng giữ nguyên lựa chọn
+            loadListData();
+            selectInvoiceByID(selectedInvID);
 
         } catch (Exception ex) {
             try { if(con!=null) con.rollback(); } catch(Exception _) {}
@@ -737,19 +609,12 @@ public class InvoiceManagerPanel extends JPanel {
         }
     }
 
-    /**
-     * Xóa hóa đơn (Transactional).
-     * 1. Hoàn trả số lượng hàng vào kho.
-     * 2. Xóa chi tiết.
-     * 3. Xóa Header.
-     */
     private void deleteInvoiceTransaction() {
         Connection con = null;
         try {
             con = DBConnection.getConnection();
             con.setAutoCommit(false);
 
-            // B1: Hoàn kho
             String sqlGetItems = "SELECT pro_ID, ind_count FROM Invoice_details WHERE inv_ID = ?";
             PreparedStatement psGet = con.prepareStatement(sqlGetItems);
             psGet.setInt(1, selectedInvID);
@@ -763,12 +628,10 @@ public class InvoiceManagerPanel extends JPanel {
                 psRestock.executeUpdate();
             }
 
-            // B2: Xóa chi tiết
             PreparedStatement psDelDetail = con.prepareStatement("DELETE FROM Invoice_details WHERE inv_ID = ?");
             psDelDetail.setInt(1, selectedInvID);
             psDelDetail.executeUpdate();
 
-            // B3: Xóa Header
             PreparedStatement psDelHead = con.prepareStatement("DELETE FROM Invoices WHERE inv_ID = ?");
             psDelHead.setInt(1, selectedInvID);
             psDelHead.executeUpdate();
@@ -777,80 +640,52 @@ public class InvoiceManagerPanel extends JPanel {
             showSuccess(this, "Đã xóa và hoàn kho!");
             loadListData();
             clearForm();
-
         } catch (Exception ex) {
-            try { if (con != null) con.rollback(); } catch (Exception ignored) {}
+            try { if (con != null) con.rollback(); } catch (Exception _) {}
             showError(this, "Lỗi xóa: " + ex.getMessage());
         } finally {
-            try { if (con != null) { con.setAutoCommit(true); con.close(); } } catch (Exception ignored) {}
+            try { if (con != null) { con.setAutoCommit(true); con.close(); } } catch (Exception _) {}
         }
     }
 
-    /**
-     * In hóa đơn ra màn hình (HTML Preview).
-     */
     private void printInvoice() {
         if (selectedInvID == -1) return;
-
         try {
             StringBuilder bill = new StringBuilder();
-            bill.append("<html>");
-            bill.append("<head><style>");
-            bill.append("body { font-family: Monospaced; font-size: 12px; }");
-            bill.append("h2 { text-align: center; }");
-            bill.append(".line { border-bottom: 1px dashed black; }");
-            bill.append(".right { text-align: right; }");
-            bill.append("table { width: 100%; border-collapse: collapse; }");
-            bill.append("td, th { padding: 5px; text-align: left; }");
-            bill.append(".num { text-align: right; }");
-            bill.append("</style></head><body>");
+            bill.append("<html><head><style>body { font-family: Monospaced; font-size: 12px; } h2 { text-align: center; } .line { border-bottom: 1px dashed black; } .right { text-align: right; } table { width: 100%; border-collapse: collapse; } td, th { padding: 5px; text-align: left; } .num { text-align: right; } </style></head><body>");
             bill.append("<h2>HÓA ĐƠN BÁN HÀNG</h2>");
             bill.append("<p style='text-align:center'>Mã số: #").append(selectedInvID).append("</p>");
             bill.append("<p style='text-align:center'>Ngày: ").append(txtDate.getText()).append("</p>");
             bill.append("<div class='line'></div>");
             bill.append("<p><b>Khách hàng:</b> ").append(cbCustomer.getSelectedItem()).append("</p>");
             bill.append("<p><b>Nhân viên:</b> ").append(cbStaff.getSelectedItem()).append("</p>");
-            bill.append("<br>");
-            bill.append("<table>");
-            bill.append("<tr><th>Sản phẩm</th><th class='num'>SL</th><th class='num'>Đ.Giá</th><th class='num'>T.Tiền</th></tr>");
+            bill.append("<br><table><tr><th>Sản phẩm</th><th class='num'>SL</th><th class='num'>Đ.Giá</th><th class='num'>T.Tiền</th></tr>");
 
             for (int i = 0; i < detailModel.getRowCount(); i++) {
-                String name = detailModel.getValueAt(i, 1).toString();
-                String price = detailModel.getValueAt(i, 2).toString();
-                String qty = detailModel.getValueAt(i, 3).toString();
-                String total = detailModel.getValueAt(i, 4).toString();
-
                 bill.append("<tr>");
-                bill.append("<td>").append(name).append("</td>");
-                bill.append("<td class='num'>").append(qty).append("</td>");
-                bill.append("<td class='num'>").append(price).append("</td>");
-                bill.append("<td class='num'>").append(total).append("</td>");
+                bill.append("<td>").append(detailModel.getValueAt(i, 1)).append("</td>");
+                bill.append("<td class='num'>").append(detailModel.getValueAt(i, 3)).append("</td>");
+                bill.append("<td class='num'>").append(detailModel.getValueAt(i, 2)).append("</td>");
+                bill.append("<td class='num'>").append(detailModel.getValueAt(i, 4)).append("</td>");
                 bill.append("</tr>");
             }
-            bill.append("</table>");
-
-            bill.append("<div class='line'></div>");
+            bill.append("</table><div class='line'></div>");
             bill.append("<h3 class='right'>TỔNG CỘNG: ").append(txtTotalMoney.getText()).append(" VND</h3>");
-
-            bill.append("<br><p style='text-align:center; font-style:italic;'>Cảm ơn quý khách và hẹn gặp lại!</p>");
-            bill.append("</body></html>");
+            bill.append("<br><p style='text-align:center; font-style:italic;'>Cảm ơn quý khách và hẹn gặp lại!</p></body></html>");
 
             JTextPane printingComponent = new JTextPane();
             printingComponent.setContentType("text/html");
             printingComponent.setText(bill.toString());
-
-            boolean complete = printingComponent.print(null, null, true, null, null, true);
-            if (complete) {
+            if (printingComponent.print(null, null, true, null, null, true)) {
                 showSuccess(this, "Đã gửi lệnh in thành công!");
             }
-
         } catch (Exception ex) {
             showError(this, "Lỗi in ấn: " + ex.getMessage());
         }
     }
 
     // =================================================================================
-    //                           PHẦN 5: CÁC HÀM TIỆN ÍCH (HELPERS)
+    //                           PHẦN 5: CÁC HÀM TIỆN ÍCH
     // =================================================================================
 
     private void calculateUITotal() {
@@ -862,20 +697,13 @@ public class InvoiceManagerPanel extends JPanel {
     }
 
     private double parseMoney(String text) {
-        try {
-            if (text == null || text.isEmpty()) return 0;
-            return java.text.NumberFormat.getNumberInstance(java.util.Locale.US).parse(text).doubleValue();
-        } catch (Exception e) {
-            return 0;
-        }
+        try { return java.text.NumberFormat.getNumberInstance(java.util.Locale.US).parse(text).doubleValue(); } catch (Exception e) { return 0; }
     }
 
     private double getProductPrice(int proID) {
         try (Connection con = DBConnection.getConnection()) {
-            String sql = "SELECT pro_price FROM Products WHERE pro_ID = ?";
-            PreparedStatement ps = con.prepareStatement(sql);
+            PreparedStatement ps = con.prepareStatement("SELECT pro_price FROM Products WHERE pro_ID = ?");
             ps.setInt(1, proID);
-
             ResultSet rs = ps.executeQuery();
             if(rs.next()) return rs.getDouble(1);
         } catch(Exception _){}
@@ -899,16 +727,13 @@ public class InvoiceManagerPanel extends JPanel {
         cbCustomer.setEnabled(enable);
         cbStaff.setEnabled(enable);
         if (btnQuickAddCustomer != null) btnQuickAddCustomer.setEnabled(enable);
-        if (btnAddDetail != null) btnAddDetail.setEnabled(enable);
-        if (btnEditDetail != null) btnEditDetail.setEnabled(enable);
-        if (btnDelDetail != null) btnDelDetail.setEnabled(enable);
+        setDetailButtonsVisible(enable);
     }
 
     private void setDetailButtonsVisible(boolean visible) {
         if (btnAddDetail != null) btnAddDetail.setVisible(visible);
         if (btnEditDetail != null) btnEditDetail.setVisible(visible);
         if (btnDelDetail != null) btnDelDetail.setVisible(visible);
-        if (btnQuickAddCustomer != null) btnQuickAddCustomer.setVisible(visible);
     }
 
     private void clearForm() {
@@ -918,20 +743,10 @@ public class InvoiceManagerPanel extends JPanel {
         txtDate.setText("[Tự động]");
 
         if (cbCustomer.getItemCount() > 0) cbCustomer.setSelectedIndex(0);
-
         if (cbStaff.getItemCount() > 0) {
             if (JDBCUtils.Session.isLoggedIn) {
-                int myID = JDBCUtils.Session.loggedInStaffID;
-
-                for (int i = 0; i < cbStaff.getItemCount(); i++) {
-                    if (cbStaff.getItemAt(i).getValue() == myID) {
-                        cbStaff.setSelectedIndex(i);
-                        break;
-                    }
-                }
-            } else {
-                cbStaff.setSelectedIndex(0);
-            }
+                setSelectedComboItem(cbStaff, JDBCUtils.Session.loggedInStaffID);
+            } else cbStaff.setSelectedIndex(0);
         }
 
         detailModel.setRowCount(0);
@@ -941,14 +756,26 @@ public class InvoiceManagerPanel extends JPanel {
         btnDelete.setVisible(false);
         btnPrint.setVisible(false);
         setDetailButtonsVisible(false);
-
         enableForm(false);
         isDataLoading = false;
+    }
+
+    private void selectInvoiceByID(int id) {
+        ListModel<ComboItem> model = listInvoice.getModel();
+        for (int i = 0; i < model.getSize(); i++) {
+            ComboItem item = model.getElementAt(i);
+            if (item.getValue() == id) {
+                listInvoice.setSelectedIndex(i);
+                listInvoice.ensureIndexIsVisible(i);
+                break;
+            }
+        }
     }
 
     public void refreshData() {
         loadComboBoxData();
         loadListData();
+        selectInvoiceByID(selectedInvID);
     }
 
     private void addChangeListeners() {

@@ -1,4 +1,4 @@
-package CustomerForm;
+package Main.CustomerManager;
 
 import JDBCUtils.DBConnection;
 
@@ -7,29 +7,30 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 import static JDBCUtils.Style.*;
 
-public class AddCustomerForm extends JDialog {
+public class AddCustomerDialog extends JDialog {
 
     // --- 1. KHAI BÁO BIẾN GIAO DIỆN (UI) ---
     private JTextField txtName, txtPhone, txtAddress;
     private JButton btnSave, btnCancel;
 
     // --- 2. BIẾN TRẠNG THÁI ---
-    // Cờ đánh dấu xem việc thêm mới có thành công không để báo lại cho form cha
     private boolean isAdded = false;
+    private int newCustomerID = -1; // Biến lưu ID khách hàng vừa thêm
 
-    public AddCustomerForm(Frame parent) {
-        // Cấu hình Dialog: Modal = true (chặn tương tác với cửa sổ cha khi form này mở)
+    public AddCustomerDialog(Frame parent) {
         super(parent, true);
         this.setTitle("Thêm Khách Hàng Mới");
 
-        initUI();       // Khởi tạo giao diện
-        addEvents();    // Gán sự kiện nút bấm
+        initUI();
+        addEvents();
 
         this.pack();
-        this.setLocationRelativeTo(parent); // Căn giữa màn hình cha
+        this.setLocationRelativeTo(parent);
         this.setResizable(false);
     }
 
@@ -82,7 +83,6 @@ public class AddCustomerForm extends JDialog {
         // --- CHẶN NHẬP CHỮ CHO SỐ ĐIỆN THOẠI ---
         txtPhone.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent e) {
-                // Nếu ký tự gõ vào không phải số -> Hủy bỏ (không cho nhập)
                 if (!Character.isDigit(e.getKeyChar())) {
                     e.consume();
                 }
@@ -92,35 +92,47 @@ public class AddCustomerForm extends JDialog {
         // Sự kiện nút Lưu
         btnSave.addActionListener(_ -> {
             if (txtName.getText().trim().isEmpty() || txtPhone.getText().trim().isEmpty()) {
-                showError(AddCustomerForm.this, "Vui lòng nhập Tên và Số điện thoại!");
+                showError(AddCustomerDialog.this, "Vui lòng nhập Tên và Số điện thoại!");
                 return;
             }
 
             try (Connection con = DBConnection.getConnection()) {
                 String sql = "INSERT INTO Customers (cus_name, cus_phone, cus_address) VALUES (?, ?, ?)";
 
-                PreparedStatement ps = con.prepareStatement(sql);
+                // [SỬA LẠI] Thêm tham số RETURN_GENERATED_KEYS để lấy ID
+                PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+
                 ps.setString(1, txtName.getText().trim());
                 ps.setString(2, txtPhone.getText().trim());
                 ps.setString(3, txtAddress.getText().trim());
 
                 int rows = ps.executeUpdate();
                 if (rows > 0) {
-                    showSuccess(AddCustomerForm.this, "Thêm thành công!");
-                    isAdded = true; // Đánh dấu thành công
-                    dispose();      // Đóng cửa sổ
+                    // Lấy ID vừa sinh ra từ Database
+                    ResultSet rs = ps.getGeneratedKeys();
+                    if (rs.next()) {
+                        this.newCustomerID = rs.getInt(1);
+                    }
+
+                    showSuccess(AddCustomerDialog.this, "Thêm thành công!");
+                    isAdded = true;
+                    dispose();
                 }
             } catch (Exception ex) {
-                showError(AddCustomerForm.this, "Lỗi: " + ex.getMessage());
+                showError(AddCustomerDialog.this, "Lỗi: " + ex.getMessage());
             }
         });
 
-        // Sự kiện nút Hủy
         btnCancel.addActionListener(_ -> dispose());
     }
 
     // --- 5. HÀM TIỆN ÍCH ---
     public boolean isAddedSuccess() {
         return isAdded;
+    }
+
+    // Getter để lấy ID khách hàng mới
+    public int getNewCustomerID() {
+        return newCustomerID;
     }
 }

@@ -1,4 +1,4 @@
-package CustomerForm;
+package Main.CustomerManager;
 
 import JDBCUtils.ComboItem;
 import JDBCUtils.DBConnection;
@@ -192,7 +192,6 @@ public class CustomerManagerPanel extends JPanel {
         // --- CHẶN NHẬP CHỮ VÀO Ô SỐ ĐIỆN THOẠI ---
         txtPhone.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent e) {
-                // Nếu không phải số -> chặn luôn
                 if (!Character.isDigit(e.getKeyChar())) {
                     e.consume();
                 }
@@ -217,20 +216,29 @@ public class CustomerManagerPanel extends JPanel {
             loadListData();
         });
 
-        // Nút Thêm Mới
+        // Nút Thêm Mới: Thêm xong tự chọn khách hàng mới
         btnAdd.addActionListener(_ -> {
             JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
-            AddCustomerForm addCustomerForm = new AddCustomerForm(parentFrame);
-            addCustomerForm.setVisible(true);
+            AddCustomerDialog addCustomerDialog = new AddCustomerDialog(parentFrame);
+            addCustomerDialog.setVisible(true);
 
-            if (addCustomerForm.isAddedSuccess()) {
+            if (addCustomerDialog.isAddedSuccess()) {
+                // 1. Xóa tìm kiếm
+                txtSearch.setText("");
+
+                // 2. Tải lại danh sách
                 loadListData();
+
+                // 3. Lấy ID mới và chọn nó
+                int newID = addCustomerDialog.getNewCustomerID();
+                if (newID != -1) {
+                    selectCustomerByID(newID);
+                }
             }
         });
 
-        // Nút Lưu Thay Đổi
+        // Nút Lưu Thay Đổi: Lưu xong giữ nguyên lựa chọn
         btnSave.addActionListener(_ -> {
-            // Kiểm tra rỗng trước
             if (txtName.getText().trim().isEmpty() || txtPhone.getText().trim().isEmpty()) {
                 showError(this, "Tên và Số điện thoại không được để trống!");
                 return;
@@ -247,6 +255,10 @@ public class CustomerManagerPanel extends JPanel {
                 if (ps.executeUpdate() > 0) {
                     showSuccess(this, "Cập nhật thành công!");
                     loadListData();
+
+                    // Giữ nguyên dòng đang chọn
+                    selectCustomerByID(selectedCusID);
+
                     btnSave.setVisible(false);
                 }
             } catch (Exception ex) {
@@ -304,8 +316,22 @@ public class CustomerManagerPanel extends JPanel {
         txtAddress.setEnabled(enable);
     }
 
+    // [MỚI] Hàm chọn khách hàng theo ID trong danh sách
+    private void selectCustomerByID(int id) {
+        ListModel<ComboItem> model = listCustomer.getModel();
+        for (int i = 0; i < model.getSize(); i++) {
+            ComboItem item = model.getElementAt(i);
+            if (item.getValue() == id) {
+                listCustomer.setSelectedIndex(i);
+                listCustomer.ensureIndexIsVisible(i);
+                break;
+            }
+        }
+    }
+
     public void refreshData() {
         loadListData();
+        selectCustomerByID(selectedCusID);
     }
 
     // Helper Interface & Class cho DocumentListener
@@ -313,8 +339,8 @@ public class CustomerManagerPanel extends JPanel {
     interface DocumentUpdateListener { void update(DocumentEvent e); }
 
     static class SimpleDocumentListener implements DocumentListener {
-        private final CustomerForm.CustomerManagerPanel.DocumentUpdateListener listener;
-        public SimpleDocumentListener(CustomerForm.CustomerManagerPanel.DocumentUpdateListener listener) { this.listener = listener; }
+        private final DocumentUpdateListener listener;
+        public SimpleDocumentListener(DocumentUpdateListener listener) { this.listener = listener; }
         public void insertUpdate(DocumentEvent e) { listener.update(e); }
         public void removeUpdate(DocumentEvent e) { listener.update(e); }
         public void changedUpdate(DocumentEvent e) { listener.update(e); }

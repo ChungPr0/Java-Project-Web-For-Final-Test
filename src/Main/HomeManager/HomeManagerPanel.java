@@ -1,4 +1,4 @@
-package HomeForm;
+package Main.HomeManager;
 
 import JDBCUtils.DBConnection;
 
@@ -40,7 +40,8 @@ public class HomeManagerPanel extends JPanel {
         pHeader.setOpaque(false);
         JLabel lblTitle = createHeaderLabel("TỔNG QUAN 7 NGÀY QUA");
 
-        btnRefresh = createSmallButton("Mới", Color.GRAY);
+        btnRefresh = createSmallButton("Làm Mới", Color.GRAY);
+        btnRefresh.setPreferredSize(new Dimension(80, 35));
         pHeader.add(lblTitle, BorderLayout.WEST);
         pHeader.add(btnRefresh, BorderLayout.EAST);
         this.add(pHeader, BorderLayout.NORTH);

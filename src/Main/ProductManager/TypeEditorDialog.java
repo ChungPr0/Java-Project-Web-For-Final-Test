@@ -1,4 +1,4 @@
-package ProductForm;
+package Main.ProductManager;
 
 import JDBCUtils.DBConnection;
 
