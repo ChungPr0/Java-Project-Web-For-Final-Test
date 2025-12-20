@@ -86,6 +86,9 @@ D:\PhanMemBanHang\
    └── 📄 config.properties   (File cấu hình đã tạo ở trên)
 ```
 
+Hoặc bạn cũng có thể dùng bản đã được Build sẵn tại đây (chỉ cần sửa lại file config cho đúng là dùng được) tại [ResourcesPack/Versions](./ResourcesPack/Versions).
+
+
 ### 2. Cách chạy phần mềm
 Bạn có thể chọn 1 trong 2 cách sau:
 
