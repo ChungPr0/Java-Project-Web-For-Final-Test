@@ -59,7 +59,7 @@ public class CustomerStatsPanel extends JPanel {
         String sql = "SELECT c.cus_ID, c.cus_name, c.cus_phone, COUNT(i.inv_ID) as orders, SUM(i.inv_price) as total " +
                 "FROM Invoices i " +
                 "JOIN Customers c ON i.cus_ID = c.cus_ID " +
-                "WHERE i.inv_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+                "WHERE i.inv_date >= datetime('now', '-7 days') " +
                 "GROUP BY c.cus_ID, c.cus_name, c.cus_phone " +
                 "ORDER BY total DESC LIMIT 20";
 

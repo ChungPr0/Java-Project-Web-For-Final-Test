@@ -40,7 +40,7 @@ public class RevenueChartPanel extends JPanel {
 
         String sql = "SELECT DATE(inv_date) as d, SUM(inv_price) as total " +
                 "FROM Invoices " +
-                "WHERE inv_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+                "WHERE inv_date >= datetime('now', '-7 days') " +
                 "GROUP BY DATE(inv_date) " +
                 "ORDER BY d DESC";
 
@@ -50,8 +50,25 @@ public class RevenueChartPanel extends JPanel {
             List<Double> tempValues = new ArrayList<>();
 
             while (rs.next()) {
-                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM");
-                tempDates.add(sdf.format(rs.getDate("d")));
+                String dateStr = rs.getString("d");
+                String formattedDate = "N/A";
+                if (dateStr != null && dateStr.length() >= 10) {
+                    try {
+                        java.util.Date parsedDate = new SimpleDateFormat("yyyy-MM-dd").parse(dateStr);
+                        formattedDate = new SimpleDateFormat("dd/MM").format(parsedDate);
+                    } catch (java.text.ParseException e) {
+                        System.err.println("Could not parse date in RevenueChartPanel: " + dateStr);
+                        // Fallback for different formats if needed
+                        String[] parts = dateStr.split("-");
+                        if (parts.length == 3) {
+                            formattedDate = parts[2] + "/" + parts[1];
+                        } else {
+                            formattedDate = dateStr;
+                        }
+                    }
+                }
+                tempDates.add(formattedDate);
+
                 double val = rs.getDouble("total");
                 tempValues.add(val);
                 if (val > maxValue) maxValue = val;

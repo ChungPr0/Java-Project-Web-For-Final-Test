@@ -52,7 +52,7 @@ public class PieChartPanel extends JPanel {
                 "JOIN Products p ON d.pro_ID = p.pro_ID " +
                 "JOIN ProductTypes t ON p.type_ID = t.type_ID " +
                 "JOIN Invoices i ON d.inv_ID = i.inv_ID " +
-                "WHERE i.inv_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+                "WHERE i.inv_date >= datetime('now', '-7 days') " +
                 "GROUP BY t.type_name ORDER BY total DESC LIMIT 7";
 
         try (Connection con = DBConnection.getConnection()) {

@@ -61,7 +61,7 @@ public class InvoiceStatsPanel extends JPanel {
                 "FROM Invoices i " +
                 "LEFT JOIN Customers c ON i.cus_ID = c.cus_ID " +
                 "LEFT JOIN Staffs s ON i.sta_ID = s.sta_ID " +
-                "WHERE i.inv_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+                "WHERE i.inv_date >= datetime('now', '-7 days') " +
                 "ORDER BY i.inv_price DESC LIMIT 20";
 
         try (Connection con = DBConnection.getConnection()) {
@@ -82,12 +82,24 @@ public class InvoiceStatsPanel extends JPanel {
                         ? String.format("%.1f Tr", price / 1000000)
                         : String.format("%.0f K", price / 1000);
 
+                String dateStr = rs.getString("inv_date");
+                String formattedDate = "";
+                if (dateStr != null) {
+                    try {
+                        java.util.Date parsedDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(dateStr);
+                        formattedDate = sdf.format(parsedDate);
+                    } catch (java.text.ParseException e) {
+                        formattedDate = dateStr; // Fallback
+                        System.err.println("Could not parse date in InvoiceStatsPanel: " + dateStr);
+                    }
+                }
+
                 tableModel.addRow(new Object[]{
                         "#" + rank++,
                         rs.getInt("inv_ID"),
                         cusName,
                         staName,
-                        sdf.format(rs.getTimestamp("inv_date")),
+                        formattedDate,
                         moneyStr
                 });
             }

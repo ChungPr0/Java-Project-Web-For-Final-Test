@@ -218,20 +218,24 @@ public class StaffManagerPanel extends JPanel {
                 String role = rs.getString("sta_role");
                 chkIsAdmin.setSelected(role != null && role.equalsIgnoreCase("Admin"));
 
-                Date sqlDate = rs.getDate("sta_date_of_birth");
-                if (sqlDate != null) {
-                    String[] parts = sqlDate.toString().split("-");
-                    cbYear.setSelectedItem(parts[0]);
-                    cbMonth.setSelectedItem(parts[1]);
-                    cbDay.setSelectedItem(parts[2]);
+                String dobStr = rs.getString("sta_date_of_birth");
+                if (dobStr != null && !dobStr.isEmpty()) {
+                    String[] parts = dobStr.split("-");
+                    if (parts.length == 3) {
+                        cbYear.setSelectedItem(parts[0]);
+                        cbMonth.setSelectedItem(parts[1]);
+                        cbDay.setSelectedItem(parts[2]);
+                    }
                 }
 
-                Date sqlStartDate = rs.getDate("sta_start_date");
-                if (sqlStartDate != null) {
-                    String[] parts = sqlStartDate.toString().split("-");
-                    cbStartYear.setSelectedItem(parts[0]);
-                    cbStartMonth.setSelectedItem(parts[1]);
-                    cbStartDay.setSelectedItem(parts[2]);
+                String startDateStr = rs.getString("sta_start_date");
+                if (startDateStr != null && !startDateStr.isEmpty()) {
+                    String[] parts = startDateStr.split("-");
+                    if (parts.length == 3) {
+                        cbStartYear.setSelectedItem(parts[0]);
+                        cbStartMonth.setSelectedItem(parts[1]);
+                        cbStartDay.setSelectedItem(parts[2]);
+                    }
                 }
 
                 enableForm(true);

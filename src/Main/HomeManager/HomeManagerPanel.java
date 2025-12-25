@@ -140,19 +140,19 @@ public class HomeManagerPanel extends JPanel {
 
     public void refreshData() {
         try (Connection con = DBConnection.getConnection()) {
-            String sqlRev = "SELECT SUM(inv_price) FROM Invoices WHERE inv_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+            String sqlRev = "SELECT SUM(inv_price) FROM Invoices WHERE inv_date >= datetime('now', '-7 days')";
             ResultSet rsRev = con.createStatement().executeQuery(sqlRev);
             if (rsRev.next()) lblRevenue7Days.setText(formatSmartMoney(rsRev.getDouble(1)));
 
-            String sqlItems = "SELECT SUM(d.ind_count) FROM Invoice_details d JOIN Invoices i ON d.inv_ID = i.inv_ID WHERE i.inv_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+            String sqlItems = "SELECT SUM(d.ind_count) FROM Invoice_details d JOIN Invoices i ON d.inv_ID = i.inv_ID WHERE i.inv_date >= datetime('now', '-7 days')";
             ResultSet rsItems = con.createStatement().executeQuery(sqlItems);
             if (rsItems.next()) lblItemsSold7Days.setText(String.valueOf(rsItems.getInt(1)));
 
-            String sqlCus = "SELECT COUNT(DISTINCT cus_ID) FROM Invoices WHERE inv_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+            String sqlCus = "SELECT COUNT(DISTINCT cus_ID) FROM Invoices WHERE inv_date >= datetime('now', '-7 days')";
             ResultSet rsCus = con.createStatement().executeQuery(sqlCus);
             if (rsCus.next()) lblActiveCustomers7Days.setText(String.valueOf(rsCus.getInt(1)));
 
-            String sqlOrd = "SELECT COUNT(*) FROM Invoices WHERE inv_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+            String sqlOrd = "SELECT COUNT(*) FROM Invoices WHERE inv_date >= datetime('now', '-7 days')";
             ResultSet rsOrd = con.createStatement().executeQuery(sqlOrd);
             if (rsOrd.next()) lblOrders7Days.setText(String.valueOf(rsOrd.getInt(1)));
 

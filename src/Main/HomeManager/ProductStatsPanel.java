@@ -72,7 +72,7 @@ public class ProductStatsPanel extends JPanel {
                     "FROM Invoice_details d " +
                     "JOIN Products p ON d.pro_ID = p.pro_ID " +
                     "JOIN Invoices i ON d.inv_ID = i.inv_ID " +
-                    "WHERE i.inv_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+                    "WHERE i.inv_date >= datetime('now', '-7 days') " +
                     "GROUP BY p.pro_ID, p.pro_name, p.pro_count " +
                     "ORDER BY qty DESC LIMIT 20";
         } else {
@@ -84,7 +84,7 @@ public class ProductStatsPanel extends JPanel {
                     "JOIN Products p ON d.pro_ID = p.pro_ID " +
                     "JOIN ProductTypes t ON p.type_ID = t.type_ID " +
                     "JOIN Invoices i ON d.inv_ID = i.inv_ID " +
-                    "WHERE i.inv_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+                    "WHERE i.inv_date >= datetime('now', '-7 days') " +
                     "AND t.type_name = ? " +
                     "GROUP BY p.pro_ID, p.pro_name, p.pro_count " +
                     "ORDER BY qty DESC";

@@ -235,13 +235,16 @@ public class SupplierManagerPanel extends JPanel {
                 txtAddress.setText(rs.getString("sup_address"));
                 txtDescription.setText(rs.getString("sup_description"));
 
-                Date sqlDate = rs.getDate("sup_start_date");
-                if (sqlDate != null) {
-                    String[] parts = sqlDate.toString().split("-");
-                    cbYear.setSelectedItem(parts[0]);
-                    cbMonth.setSelectedItem(parts[1]);
-                    cbDay.setSelectedItem(parts[2]);
+                String dateStr = rs.getString("sup_start_date");
+                if (dateStr != null && !dateStr.isEmpty()) {
+                    String[] parts = dateStr.split("-");
+                    if (parts.length == 3) {
+                        cbYear.setSelectedItem(parts[0]);
+                        cbMonth.setSelectedItem(parts[1]);
+                        cbDay.setSelectedItem(parts[2]);
+                    }
                 } else {
+                    // Set to a default if date is null or empty
                     cbYear.setSelectedIndex(0);
                     cbMonth.setSelectedIndex(0);
                     cbDay.setSelectedIndex(0);

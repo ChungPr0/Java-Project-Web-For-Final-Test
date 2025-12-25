@@ -263,9 +263,23 @@ public class InvoiceManagerPanel extends JPanel {
                 txtID.setText("#" + selectedInvID);
                 setSelectedComboItem(cbCustomer, rs.getInt("cus_ID"));
                 setSelectedComboItem(cbStaff, rs.getInt("sta_ID"));
-                java.sql.Timestamp ts = rs.getTimestamp("inv_date");
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-                txtDate.setText(ts != null ? sdf.format(ts) : "");
+                
+                String dateStr = rs.getString("inv_date");
+                String formattedDate = "";
+                if (dateStr != null) {
+                    try {
+                        // Input format from SQLite is 'yyyy-MM-dd HH:mm:ss'
+                        java.util.Date parsedDate = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(dateStr);
+                        // Output format for the UI
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+                        formattedDate = sdf.format(parsedDate);
+                    } catch (java.text.ParseException e) {
+                        // If parsing fails, just show the raw string from DB as a fallback
+                        formattedDate = dateStr;
+                        System.err.println("Could not parse date in InvoiceManagerPanel: " + dateStr);
+                    }
+                }
+                txtDate.setText(formattedDate);
 
                 btnAdd.setVisible(true);
                 btnSave.setVisible(false);

@@ -1,73 +1,81 @@
 -- =====================
--- 1. THIẾT LẬP DATABASE
+-- 1. THIẾT LẬP (SQLite không cần tạo DB bằng lệnh, chỉ cần PRAGMA)
 -- =====================
-DROP DATABASE IF EXISTS QuanLyBanHang;
-CREATE DATABASE QuanLyBanHang CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE QuanLyBanHang;
+PRAGMA foreign_keys = OFF; -- Tắt kiểm tra khóa ngoại để insert nhanh
 
 -- ====================
--- 2. TẠO CẤU TRÚC BẢNG
+-- 2. TẠO CẤU TRÚC BẢNG (Chuẩn SQLite)
 -- ====================
+
+DROP TABLE IF EXISTS Invoice_details;
+DROP TABLE IF EXISTS Invoices;
+DROP TABLE IF EXISTS Products;
+DROP TABLE IF EXISTS ProductTypes;
+DROP TABLE IF EXISTS Staffs;
+DROP TABLE IF EXISTS Customers;
+DROP TABLE IF EXISTS Suppliers;
+
 CREATE TABLE Suppliers (
-    sup_ID INT PRIMARY KEY AUTO_INCREMENT,
-    sup_name VARCHAR(100) NOT NULL,
-    sup_address VARCHAR(255) NOT NULL,
-    sup_phone VARCHAR(20) NOT NULL,
-    sup_start_date DATE DEFAULT (CURRENT_DATE),
+    sup_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    sup_name TEXT NOT NULL,
+    sup_address TEXT NOT NULL,
+    sup_phone TEXT NOT NULL,
+    sup_start_date TEXT DEFAULT (DATE('now')),
     sup_description TEXT NOT NULL
 );
 
 CREATE TABLE Customers (
-    cus_ID INT PRIMARY KEY AUTO_INCREMENT,
-    cus_name VARCHAR(100) NOT NULL,
-    cus_address VARCHAR(255),
-    cus_phone VARCHAR(20) NOT NULL
+    cus_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    cus_name TEXT NOT NULL,
+    cus_address TEXT,
+    cus_phone TEXT NOT NULL
 );
 
 CREATE TABLE Staffs (
-    sta_ID INT PRIMARY KEY AUTO_INCREMENT,
-    sta_name VARCHAR(100) NOT NULL,
-    sta_date_of_birth DATE NOT NULL,
-    sta_phone VARCHAR(20) NOT NULL,
-    sta_address VARCHAR(255) NOT NULL,
-    sta_salary DECIMAL(18, 0) DEFAULT 5000000,
-    sta_start_date DATE DEFAULT (CURRENT_DATE),
-    sta_username VARCHAR(50) UNIQUE,
-    sta_password VARCHAR(50),
-    sta_role VARCHAR(20) DEFAULT 'Staff'
+    sta_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    sta_name TEXT NOT NULL,
+    sta_date_of_birth TEXT NOT NULL,
+    sta_phone TEXT NOT NULL,
+    sta_address TEXT NOT NULL,
+    sta_salary REAL DEFAULT 5000000,
+    sta_start_date TEXT DEFAULT (DATE('now')),
+    sta_username TEXT UNIQUE,
+    sta_password TEXT,
+    sta_role TEXT DEFAULT 'Staff'
 );
+
 CREATE TABLE ProductTypes (
-    type_ID INT PRIMARY KEY AUTO_INCREMENT,
-    type_name VARCHAR(100) NOT NULL UNIQUE
+    type_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    type_name TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE Products (
-    pro_ID INT PRIMARY KEY AUTO_INCREMENT,
-    pro_name VARCHAR(100) NOT NULL,
-    pro_price DECIMAL(18, 0) NOT NULL,
-    pro_count INT DEFAULT 0,
-    type_ID INT,
-    sup_ID INT,
+    pro_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    pro_name TEXT NOT NULL,
+    pro_price REAL NOT NULL,
+    pro_count INTEGER DEFAULT 0,
+    type_ID INTEGER,
+    sup_ID INTEGER,
     FOREIGN KEY (type_ID) REFERENCES ProductTypes(type_ID),
     FOREIGN KEY (sup_ID) REFERENCES Suppliers(sup_ID)
 );
 
 CREATE TABLE Invoices (
-    inv_ID INT PRIMARY KEY AUTO_INCREMENT,
-    sta_ID INT,
-    cus_ID INT,
-    inv_price DECIMAL(18, 0) DEFAULT 0,
-    inv_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    inv_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    sta_ID INTEGER,
+    cus_ID INTEGER,
+    inv_price REAL DEFAULT 0,
+    inv_date TEXT DEFAULT (DATETIME('now')),
     FOREIGN KEY (sta_ID) REFERENCES Staffs(sta_ID),
     FOREIGN KEY (cus_ID) REFERENCES Customers(cus_ID)
 );
 
 CREATE TABLE Invoice_details (
-    ind_ID INT PRIMARY KEY AUTO_INCREMENT,
-    inv_ID INT,
-    pro_ID INT,
-    ind_count INT NOT NULL,
-    unit_price DECIMAL(18, 0) DEFAULT 0,
+    ind_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    inv_ID INTEGER,
+    pro_ID INTEGER,
+    ind_count INTEGER NOT NULL,
+    unit_price REAL DEFAULT 0,
     FOREIGN KEY (inv_ID) REFERENCES Invoices(inv_ID) ON DELETE CASCADE,
     FOREIGN KEY (pro_ID) REFERENCES Products(pro_ID)
 );
@@ -75,11 +83,8 @@ CREATE TABLE Invoice_details (
 -- ===============
 -- 3. CHÈN DỮ LIỆU
 -- ===============
-SET FOREIGN_KEY_CHECKS = 0; -- Tắt kiểm tra khóa ngoại tạm thời để insert nhanh
 
--- -----------------
 -- 3.1. NHÀ CUNG CẤP
--- -----------------
 INSERT INTO Suppliers (sup_name, sup_address, sup_phone, sup_start_date, sup_description) VALUES
 ('Dell Việt Nam', 'Hà Nội', '1800545455', '2015-05-12', 'Đối tác phân phối chính thức các dòng Laptop Dell Inspiron, Vostro và XPS.'),
 ('Asus Corp', 'TP.HCM', '1900555581', '2016-08-20', 'Nhà cung cấp Laptop, Mainboard, VGA Asus và các sản phẩm ROG Gaming.'),
@@ -102,7 +107,7 @@ INSERT INTO Suppliers (sup_name, sup_address, sup_phone, sup_start_date, sup_des
 ('FPT Trading', 'Hà Nội', '02473008888', '2010-10-10', 'Nhà phân phối tổng hợp các sản phẩm CNTT uy tín lâu năm.'),
 ('Digiworld', 'TP.HCM', '02839290059', '2012-02-20', 'Nhà phân phối ICT hàng đầu, cung cấp đa dạng thương hiệu công nghệ.');
 
--- 2. Chèn 80 Nhà cung cấp theo mẫu (Có ngày tháng và mô tả ngẫu nhiên)
+-- Chèn thêm 80 Nhà cung cấp
 INSERT INTO Suppliers (sup_name, sup_address, sup_phone, sup_start_date, sup_description) VALUES
 ('Nhà Cung Cấp 21', 'Khu công nghiệp Tân Bình, TP.HCM', '0900000021', '2020-01-15', 'Chuyên cung cấp linh kiện điện tử sỉ lẻ.'),
 ('Nhà Cung Cấp 22', 'Quận Cầu Giấy, Hà Nội', '0900000022', '2021-03-22', 'Đối tác cung cấp phụ kiện máy tính giá rẻ.'),
@@ -185,9 +190,7 @@ INSERT INTO Suppliers (sup_name, sup_address, sup_phone, sup_start_date, sup_des
 ('Nhà Cung Cấp 99', 'Địa chỉ 99', '0900000099', '2022-05-25', 'Cung cấp cáp sạc nhanh.'),
 ('Nhà Cung Cấp 100', 'Địa chỉ 100', '0900000100', '2020-03-15', 'Nhà cung cấp củ sạc GaN.');
 
--- ---------------
 -- 3.2. KHÁCH HÀNG
--- ---------------
 INSERT INTO Customers (cus_name, cus_address, cus_phone) VALUES
 ('Nguyễn Văn Khách 1', 'Ba Đình, Hà Nội', '0988111001'), ('Trần Thị Khách 2', 'Hoàn Kiếm, Hà Nội', '0988111002'), ('Lê Văn Khách 3', 'Đống Đa, Hà Nội', '0988111003'), ('Phạm Thị Khách 4', 'Cầu Giấy, Hà Nội', '0988111004'), ('Hoàng Văn Khách 5', 'Thanh Xuân, Hà Nội', '0988111005'),
 ('Vũ Thị Khách 6', 'Quận 1, TP.HCM', '0988111006'), ('Đặng Văn Khách 7', 'Quận 3, TP.HCM', '0988111007'), ('Bùi Thị Khách 8', 'Quận 5, TP.HCM', '0988111008'), ('Đỗ Văn Khách 9', 'Quận 7, TP.HCM', '0988111009'), ('Hồ Thị Khách 10', 'Thủ Đức, TP.HCM', '0988111010'),
@@ -212,9 +215,7 @@ INSERT INTO Customers (cus_name, cus_address, cus_phone) VALUES
 ('Khách Hàng 91', 'Địa chỉ 91', '0911111091'), ('Khách Hàng 92', 'Địa chỉ 92', '0911111092'), ('Khách Hàng 93', 'Địa chỉ 93', '0911111093'), ('Khách Hàng 94', 'Địa chỉ 94', '0911111094'), ('Khách Hàng 95', 'Địa chỉ 95', '0911111095'),
 ('Khách Hàng 96', 'Địa chỉ 96', '0911111096'), ('Khách Hàng 97', 'Địa chỉ 97', '0911111097'), ('Khách Hàng 98', 'Địa chỉ 98', '0911111098'), ('Khách Hàng 99', 'Địa chỉ 99', '0911111099'), ('Khách Hàng 100', 'Địa chỉ 100', '0911111100');
 
--- --------------
 -- 3.3. NHÂN VIÊN
--- --------------
 INSERT INTO Staffs (sta_name, sta_date_of_birth, sta_phone, sta_address, sta_salary, sta_start_date, sta_username, sta_password, sta_role) VALUES
 ('Nguyễn Quản Lý', '1990-01-01', '0901000000', 'Hà Nội', 20000000, '2020-01-01', 'admin', '123', 'Admin'),
 ('Trần Văn A', '1995-02-15', '0901000001', 'Hà Nội', 8000000, '2023-05-10', 'user1', '123', 'Staff'),
@@ -279,27 +280,12 @@ INSERT INTO Staffs (sta_name, sta_date_of_birth, sta_phone, sta_address, sta_sal
 ('Nhân Viên 97', '2000-01-01', '0900000097', 'TPHCM', 6500000, '2024-01-01', 'user97', '123', 'Staff'), ('Nhân Viên 98', '2000-01-01', '0900000098', 'TPHCM', 6500000, '2024-01-01', 'user98', '123', 'Staff'),
 ('Nhân Viên 99', '2000-01-01', '0900000099', 'TPHCM', 6500000, '2024-01-01', 'user99', '123', 'Staff'), ('Nhân Viên 100', '2000-01-01', '0900000100', 'TPHCM', 6500000, '2024-01-01', 'user100', '123', 'Staff');
 
--- ------------------
 -- 3.4. LOẠI SẢN PHẨM
--- ------------------
 INSERT INTO ProductTypes (type_name) VALUES
 ('Laptop Văn Phòng'), ('Laptop Gaming'), ('Macbook'), ('Điện thoại iPhone'), ('Điện thoại Android'), ('Máy tính bảng'), ('Đồng hồ thông minh'), ('Tai nghe'), ('Loa Bluetooth'), ('Bàn phím'),
 ('Chuột máy tính'), ('Màn hình'), ('Ram - Bộ nhớ'), ('Ổ cứng SSD'), ('VGA - Card màn hình'), ('Mainboard'), ('Case - Vỏ máy'), ('Nguồn máy tính'), ('Phần mềm'), ('Camera an ninh');
 
-INSERT INTO ProductTypes (type_name) VALUES
-('Loại Sản Phẩm 21'), ('Loại Sản Phẩm 22'), ('Loại Sản Phẩm 23'), ('Loại Sản Phẩm 24'), ('Loại Sản Phẩm 25'), ('Loại Sản Phẩm 26'), ('Loại Sản Phẩm 27'), ('Loại Sản Phẩm 28'), ('Loại Sản Phẩm 29'), ('Loại Sản Phẩm 30'),
-('Loại Sản Phẩm 31'), ('Loại Sản Phẩm 32'), ('Loại Sản Phẩm 33'), ('Loại Sản Phẩm 34'), ('Loại Sản Phẩm 35'), ('Loại Sản Phẩm 36'), ('Loại Sản Phẩm 37'), ('Loại Sản Phẩm 38'), ('Loại Sản Phẩm 39'), ('Loại Sản Phẩm 40'),
-('Loại Sản Phẩm 41'), ('Loại Sản Phẩm 42'), ('Loại Sản Phẩm 43'), ('Loại Sản Phẩm 44'), ('Loại Sản Phẩm 45'), ('Loại Sản Phẩm 46'), ('Loại Sản Phẩm 47'), ('Loại Sản Phẩm 48'), ('Loại Sản Phẩm 49'), ('Loại Sản Phẩm 50'),
-('Loại Sản Phẩm 51'), ('Loại Sản Phẩm 52'), ('Loại Sản Phẩm 53'), ('Loại Sản Phẩm 54'), ('Loại Sản Phẩm 55'), ('Loại Sản Phẩm 56'), ('Loại Sản Phẩm 57'), ('Loại Sản Phẩm 58'), ('Loại Sản Phẩm 59'), ('Loại Sản Phẩm 60'),
-('Loại Sản Phẩm 61'), ('Loại Sản Phẩm 62'), ('Loại Sản Phẩm 63'), ('Loại Sản Phẩm 64'), ('Loại Sản Phẩm 65'), ('Loại Sản Phẩm 66'), ('Loại Sản Phẩm 67'), ('Loại Sản Phẩm 68'), ('Loại Sản Phẩm 69'), ('Loại Sản Phẩm 70'),
-('Loại Sản Phẩm 71'), ('Loại Sản Phẩm 72'), ('Loại Sản Phẩm 73'), ('Loại Sản Phẩm 74'), ('Loại Sản Phẩm 75'), ('Loại Sản Phẩm 76'), ('Loại Sản Phẩm 77'), ('Loại Sản Phẩm 78'), ('Loại Sản Phẩm 79'), ('Loại Sản Phẩm 80'),
-('Loại Sản Phẩm 81'), ('Loại Sản Phẩm 82'), ('Loại Sản Phẩm 83'), ('Loại Sản Phẩm 84'), ('Loại Sản Phẩm 85'), ('Loại Sản Phẩm 86'), ('Loại Sản Phẩm 87'), ('Loại Sản Phẩm 88'), ('Loại Sản Phẩm 89'), ('Loại Sản Phẩm 90'),
-('Loại Sản Phẩm 91'), ('Loại Sản Phẩm 92'), ('Loại Sản Phẩm 93'), ('Loại Sản Phẩm 94'), ('Loại Sản Phẩm 95'), ('Loại Sản Phẩm 96'), ('Loại Sản Phẩm 97'), ('Loại Sản Phẩm 98'), ('Loại Sản Phẩm 99'), ('Loại Sản Phẩm 100');
-
--- -------------
--- 3.5. SẢN PHẨM
--- -------------
--- 40 Dòng đầu: Dữ liệu thật
+-- 3.5. SẢN PHẨM (Dữ liệu thật)
 INSERT INTO Products (pro_name, pro_price, pro_count, type_ID, sup_ID) VALUES
 ('Laptop Dell XPS 13 Plus', 45000000, 10, 1, 1), ('Laptop Dell Inspiron 15', 15000000, 20, 1, 1), ('Laptop Asus Zenbook 14', 25000000, 15, 1, 2), ('Laptop Asus TUF Gaming', 22000000, 12, 2, 2), ('Laptop HP Pavilion', 18000000, 18, 1, 5),
 ('Laptop Lenovo ThinkPad X1', 35000000, 8, 1, 6), ('Laptop MSI Raider GE78', 55000000, 5, 2, 9), ('MacBook Air M2', 28000000, 25, 3, 4), ('MacBook Pro M3 Max', 60000000, 5, 3, 4), ('iPhone 15 Pro Max', 33000000, 30, 4, 4),
@@ -310,151 +296,126 @@ INSERT INTO Products (pro_name, pro_price, pro_count, type_ID, sup_ID) VALUES
 ('SSD Samsung 980 Pro 1TB', 2800000, 40, 14, 3), ('SSD Western Digital Black 500GB', 1500000, 45, 14, 15), ('VGA RTX 4090 Gaming OC', 50000000, 3, 15, 10), ('VGA GTX 1660 Super', 5000000, 20, 15, 10), ('Mainboard Asus ROG Strix Z790', 9000000, 8, 16, 2),
 ('CPU Intel Core i9 14900K', 15000000, 10, 15, 13), ('CPU AMD Ryzen 9 7950X', 14000000, 10, 15, 14), ('Nguồn Corsair RM850x', 3000000, 20, 18, 19), ('Vỏ case NZXT H9 Flow', 4000000, 15, 17, 19), ('Camera Wifi Imou Ranger 2', 600000, 60, 20, 20);
 
--- 60 Dòng sau: Dữ liệu sinh
--- Quy tắc: Giá = ID * 100,000 (Để dễ tính toán khớp Invoices)
+-- Chèn thêm các sản phẩm ảo để đủ 100
 INSERT INTO Products (pro_name, pro_price, pro_count, type_ID, sup_ID) VALUES
-('Sản Phẩm 41', 4100000, 100, 21, 1), ('Sản Phẩm 42', 4200000, 100, 22, 2), ('Sản Phẩm 43', 4300000, 100, 23, 3), ('Sản Phẩm 44', 4400000, 100, 24, 4), ('Sản Phẩm 45', 4500000, 100, 25, 5),
-('Sản Phẩm 46', 4600000, 100, 26, 6), ('Sản Phẩm 47', 4700000, 100, 27, 7), ('Sản Phẩm 48', 4800000, 100, 28, 8), ('Sản Phẩm 49', 4900000, 100, 29, 9), ('Sản Phẩm 50', 5000000, 100, 30, 10),
-('Sản Phẩm 51', 5100000, 100, 31, 11), ('Sản Phẩm 52', 5200000, 100, 32, 12), ('Sản Phẩm 53', 5300000, 100, 33, 13), ('Sản Phẩm 54', 5400000, 100, 34, 14), ('Sản Phẩm 55', 5500000, 100, 35, 15),
-('Sản Phẩm 56', 5600000, 100, 36, 16), ('Sản Phẩm 57', 5700000, 100, 37, 17), ('Sản Phẩm 58', 5800000, 100, 38, 18), ('Sản Phẩm 59', 5900000, 100, 39, 19), ('Sản Phẩm 60', 6000000, 100, 40, 20),
-('Sản Phẩm 61', 6100000, 100, 41, 1), ('Sản Phẩm 62', 6200000, 100, 42, 2), ('Sản Phẩm 63', 6300000, 100, 43, 3), ('Sản Phẩm 64', 6400000, 100, 44, 4), ('Sản Phẩm 65', 6500000, 100, 45, 5),
-('Sản Phẩm 66', 6600000, 100, 46, 6), ('Sản Phẩm 67', 6700000, 100, 47, 7), ('Sản Phẩm 68', 6800000, 100, 48, 8), ('Sản Phẩm 69', 6900000, 100, 49, 9), ('Sản Phẩm 70', 7000000, 100, 50, 10),
-('Sản Phẩm 71', 7100000, 100, 51, 11), ('Sản Phẩm 72', 7200000, 100, 52, 12), ('Sản Phẩm 73', 7300000, 100, 53, 13), ('Sản Phẩm 74', 7400000, 100, 54, 14), ('Sản Phẩm 75', 7500000, 100, 55, 15),
-('Sản Phẩm 76', 7600000, 100, 56, 16), ('Sản Phẩm 77', 7700000, 100, 57, 17), ('Sản Phẩm 78', 7800000, 100, 58, 18), ('Sản Phẩm 79', 7900000, 100, 59, 19), ('Sản Phẩm 80', 8000000, 100, 60, 20),
-('Sản Phẩm 81', 8100000, 100, 61, 1), ('Sản Phẩm 82', 8200000, 100, 62, 2), ('Sản Phẩm 83', 8300000, 100, 63, 3), ('Sản Phẩm 84', 8400000, 100, 64, 4), ('Sản Phẩm 85', 8500000, 100, 65, 5),
-('Sản Phẩm 86', 8600000, 100, 66, 6), ('Sản Phẩm 87', 8700000, 100, 67, 7), ('Sản Phẩm 88', 8800000, 100, 68, 8), ('Sản Phẩm 89', 8900000, 100, 69, 9), ('Sản Phẩm 90', 9000000, 100, 70, 10),
-('Sản Phẩm 91', 9100000, 100, 71, 11), ('Sản Phẩm 92', 9200000, 100, 72, 12), ('Sản Phẩm 93', 9300000, 100, 73, 13), ('Sản Phẩm 94', 9400000, 100, 74, 14), ('Sản Phẩm 95', 9500000, 100, 75, 15),
-('Sản Phẩm 96', 9600000, 100, 76, 16), ('Sản Phẩm 97', 9700000, 100, 77, 17), ('Sản Phẩm 98', 9800000, 100, 78, 18), ('Sản Phẩm 99', 9900000, 100, 79, 19), ('Sản Phẩm 100', 10000000, 100, 80, 20);
+('Sản Phẩm 41', 4100000, 100, 1, 1), ('Sản Phẩm 42', 4200000, 100, 2, 2), ('Sản Phẩm 43', 4300000, 100, 3, 3), ('Sản Phẩm 44', 4400000, 100, 4, 4), ('Sản Phẩm 45', 4500000, 100, 5, 5),
+('Sản Phẩm 46', 4600000, 100, 6, 6), ('Sản Phẩm 47', 4700000, 100, 7, 7), ('Sản Phẩm 48', 4800000, 100, 8, 8), ('Sản Phẩm 49', 4900000, 100, 9, 9), ('Sản Phẩm 50', 5000000, 100, 10, 10),
+('Sản Phẩm 51', 5100000, 100, 11, 11), ('Sản Phẩm 52', 5200000, 100, 12, 12), ('Sản Phẩm 53', 5300000, 100, 13, 13), ('Sản Phẩm 54', 5400000, 100, 14, 14), ('Sản Phẩm 55', 5500000, 100, 15, 15),
+('Sản Phẩm 56', 5600000, 100, 16, 16), ('Sản Phẩm 57', 5700000, 100, 17, 17), ('Sản Phẩm 58', 5800000, 100, 18, 18), ('Sản Phẩm 59', 5900000, 100, 19, 19), ('Sản Phẩm 60', 6000000, 100, 20, 20),
+('Sản Phẩm 61', 6100000, 100, 1, 1), ('Sản Phẩm 62', 6200000, 100, 2, 2), ('Sản Phẩm 63', 6300000, 100, 3, 3), ('Sản Phẩm 64', 6400000, 100, 4, 4), ('Sản Phẩm 65', 6500000, 100, 5, 5),
+('Sản Phẩm 66', 6600000, 100, 6, 6), ('Sản Phẩm 67', 6700000, 100, 7, 7), ('Sản Phẩm 68', 6800000, 100, 8, 8), ('Sản Phẩm 69', 6900000, 100, 9, 9), ('Sản Phẩm 70', 7000000, 100, 10, 10),
+('Sản Phẩm 71', 7100000, 100, 11, 11), ('Sản Phẩm 72', 7200000, 100, 12, 12), ('Sản Phẩm 73', 7300000, 100, 13, 13), ('Sản Phẩm 74', 7400000, 100, 14, 14), ('Sản Phẩm 75', 7500000, 100, 15, 15),
+('Sản Phẩm 76', 7600000, 100, 16, 16), ('Sản Phẩm 77', 7700000, 100, 17, 17), ('Sản Phẩm 78', 7800000, 100, 18, 18), ('Sản Phẩm 79', 7900000, 100, 19, 19), ('Sản Phẩm 80', 8000000, 100, 20, 20),
+('Sản Phẩm 81', 8100000, 100, 1, 1), ('Sản Phẩm 82', 8200000, 100, 2, 2), ('Sản Phẩm 83', 8300000, 100, 3, 3), ('Sản Phẩm 84', 8400000, 100, 4, 4), ('Sản Phẩm 85', 8500000, 100, 5, 5),
+('Sản Phẩm 86', 8600000, 100, 6, 6), ('Sản Phẩm 87', 8700000, 100, 7, 7), ('Sản Phẩm 88', 8800000, 100, 8, 8), ('Sản Phẩm 89', 8900000, 100, 9, 9), ('Sản Phẩm 90', 9000000, 100, 10, 10),
+('Sản Phẩm 91', 9100000, 100, 11, 11), ('Sản Phẩm 92', 9200000, 100, 12, 12), ('Sản Phẩm 93', 9300000, 100, 13, 13), ('Sản Phẩm 94', 9400000, 100, 14, 14), ('Sản Phẩm 95', 9500000, 100, 15, 15),
+('Sản Phẩm 96', 9600000, 100, 16, 16), ('Sản Phẩm 97', 9700000, 100, 17, 17), ('Sản Phẩm 98', 9800000, 100, 18, 18), ('Sản Phẩm 99', 9900000, 100, 19, 19), ('Sản Phẩm 100', 10000000, 100, 20, 20);
 
--- ----------------------------------------------------------------------
 -- 3.6. HÓA ĐƠN & CHI TIẾT
--- Logic: Mỗi Hóa đơn i (1-100) mua Sản phẩm i. Số lượng: i%2==0 ? 2 : 1.
--- ----------------------------------------------------------------------
+-- (Dữ liệu Hóa đơn như trên, lưu ý hàm DATE_SUB đổi thành DATE(..., '-x days'))
 
--- A. HÓA ĐƠN (Header)
--- Dữ liệu được rải đều trong vòng 30 ngày gần nhất
 INSERT INTO Invoices (sta_ID, cus_ID, inv_price, inv_date) VALUES
--- [Ngày hôm nay và hôm qua] (Mới nhất)
-(1, 1, 45000000, NOW()),
-(2, 5, 1200000, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
-(3, 8, 25000000, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
-(1, 12, 5500000, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
-(4, 3, 18500000, DATE_SUB(NOW(), INTERVAL 1 DAY)),
-(2, 15, 900000, DATE_SUB(NOW(), INTERVAL 1 DAY)),
-(5, 20, 32000000, DATE_SUB(NOW(), INTERVAL 1 DAY)),
-(6, 22, 15000000, DATE_SUB(NOW(), INTERVAL 2 DAY)),
-(7, 25, 450000, DATE_SUB(NOW(), INTERVAL 2 DAY)),
-(1, 2, 60000000, DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(1, 1, 45000000, DATETIME('now')),
+(2, 5, 1200000, DATETIME('now', '-1 hours')),
+(3, 8, 25000000, DATETIME('now', '-3 hours')),
+(1, 12, 5500000, DATETIME('now', '-5 hours')),
+(4, 3, 18500000, DATETIME('now', '-1 days')),
+(2, 15, 900000, DATETIME('now', '-1 days')),
+(5, 20, 32000000, DATETIME('now', '-1 days')),
+(6, 22, 15000000, DATETIME('now', '-2 days')),
+(7, 25, 450000, DATETIME('now', '-2 days')),
+(1, 2, 60000000, DATETIME('now', '-2 days')),
+(3, 4, 2200000, DATETIME('now', '-3 days')),
+(8, 6, 8500000, DATETIME('now', '-3 days')),
+(2, 9, 12500000, DATETIME('now', '-3 days')),
+(9, 11, 3000000, DATETIME('now', '-4 days')),
+(10, 14, 45000000, DATETIME('now', '-4 days')),
+(4, 18, 500000, DATETIME('now', '-4 days')),
+(5, 19, 7500000, DATETIME('now', '-5 days')),
+(1, 30, 28000000, DATETIME('now', '-5 days')),
+(2, 35, 1500000, DATETIME('now', '-5 days')),
+(6, 38, 9000000, DATETIME('now', '-5 days')),
+(7, 10, 12000000, DATETIME('now', '-6 days')),
+(8, 12, 3500000, DATETIME('now', '-6 days')),
+(3, 15, 21000000, DATETIME('now', '-7 days')),
+(9, 16, 600000, DATETIME('now', '-7 days')),
+(10, 18, 4500000, DATETIME('now', '-8 days')),
+(1, 20, 18000000, DATETIME('now', '-8 days')),
+(2, 21, 2500000, DATETIME('now', '-9 days')),
+(4, 25, 30000000, DATETIME('now', '-9 days')),
+(5, 28, 5500000, DATETIME('now', '-10 days')),
+(6, 30, 9000000, DATETIME('now', '-10 days')),
+(7, 33, 1500000, DATETIME('now', '-11 days')),
+(8, 35, 40000000, DATETIME('now', '-11 days')),
+(9, 40, 1200000, DATETIME('now', '-12 days')),
+(1, 5, 8000000, DATETIME('now', '-12 days')),
+(2, 7, 24000000, DATETIME('now', '-13 days')),
+(3, 9, 3500000, DATETIME('now', '-13 days')),
+(4, 11, 19000000, DATETIME('now', '-14 days')),
+(10, 13, 6500000, DATETIME('now', '-14 days')),
+(5, 14, 2000000, DATETIME('now', '-15 days')),
+(6, 17, 15000000, DATETIME('now', '-15 days')),
+(7, 22, 9000000, DATETIME('now', '-16 days')),
+(8, 24, 4500000, DATETIME('now', '-16 days')),
+(9, 26, 32000000, DATETIME('now', '-17 days')),
+(1, 29, 2800000, DATETIME('now', '-17 days')),
+(2, 31, 1000000, DATETIME('now', '-18 days')),
+(3, 34, 5000000, DATETIME('now', '-18 days')),
+(4, 37, 12000000, DATETIME('now', '-19 days')),
+(5, 39, 8500000, DATETIME('now', '-19 days')),
+(6, 1, 30000000, DATETIME('now', '-20 days')),
+(7, 3, 2000000, DATETIME('now', '-20 days')),
+(8, 6, 1500000, DATETIME('now', '-21 days')),
+(9, 8, 45000000, DATETIME('now', '-21 days')),
+(10, 10, 6000000, DATETIME('now', '-22 days')),
+(1, 12, 2200000, DATETIME('now', '-22 days')),
+(2, 15, 9500000, DATETIME('now', '-23 days')),
+(3, 18, 18000000, DATETIME('now', '-23 days')),
+(4, 20, 3500000, DATETIME('now', '-24 days')),
+(5, 23, 1200000, DATETIME('now', '-24 days')),
+(6, 25, 28000000, DATETIME('now', '-25 days')),
+(7, 27, 4000000, DATETIME('now', '-25 days')),
+(8, 30, 15000000, DATETIME('now', '-26 days')),
+(9, 32, 500000, DATETIME('now', '-26 days')),
+(10, 35, 7000000, DATETIME('now', '-26 days')),
+(1, 38, 21000000, DATETIME('now', '-27 days')),
+(2, 40, 9000000, DATETIME('now', '-27 days')),
+(3, 2, 33000000, DATETIME('now', '-27 days')),
+(4, 4, 2500000, DATETIME('now', '-28 days')),
+(5, 7, 12000000, DATETIME('now', '-28 days')),
+(6, 9, 4500000, DATETIME('now', '-28 days')),
+(7, 11, 55000000, DATETIME('now', '-28 days')),
+(8, 13, 1800000, DATETIME('now', '-29 days')),
+(9, 16, 26000000, DATETIME('now', '-29 days')),
+(10, 19, 3000000, DATETIME('now', '-29 days')),
+(1, 21, 8000000, DATETIME('now', '-29 days')),
+(2, 24, 15000000, DATETIME('now', '-30 days')),
+(3, 26, 4000000, DATETIME('now', '-30 days')),
+(4, 28, 9500000, DATETIME('now', '-30 days')),
+(5, 31, 2200000, DATETIME('now', '-30 days')),
+(6, 33, 10000000, DATETIME('now', '-30 days')),
+(7, 36, 5000000, DATETIME('now', '-30 days')),
+(8, 39, 35000000, DATETIME('now', '-12 days')),
+(9, 1, 1200000, DATETIME('now', '-5 days')),
+(10, 5, 28000000, DATETIME('now', '-24 days')),
+(1, 8, 4500000, DATETIME('now', '-2 days')),
+(2, 12, 19000000, DATETIME('now', '-18 days')),
+(3, 15, 6000000, DATETIME('now', '-9 days')),
+(4, 20, 2500000, DATETIME('now', '-27 days')),
+(5, 25, 15000000, DATETIME('now', '-14 days')),
+(6, 30, 3000000, DATETIME('now', '-21 days')),
+(7, 35, 8500000, DATETIME('now', '-6 days')),
+(8, 40, 42000000, DATETIME('now', '-1 days')),
+(9, 1, 1200000, DATETIME('now', '-29 days')),
+(10, 5, 28000000, DATETIME('now', '-15 days')),
+(1, 8, 4500000, DATETIME('now', '-8 days')),
+(2, 12, 19000000, DATETIME('now', '-22 days')),
+(3, 15, 6000000, DATETIME('now', '-4 days')),
+(4, 20, 2500000, DATETIME('now', '-16 days')),
+(5, 25, 15000000, DATETIME('now', '-28 days')),
+(6, 30, 3000000, DATETIME('now', '-11 days')),
+(7, 35, 8500000, DATETIME('now', '-3 days'));
 
--- [3 - 5 ngày trước]
-(3, 4, 2200000, DATE_SUB(NOW(), INTERVAL 3 DAY)),
-(8, 6, 8500000, DATE_SUB(NOW(), INTERVAL 3 DAY)),
-(2, 9, 12500000, DATE_SUB(NOW(), INTERVAL 3 DAY)),
-(9, 11, 3000000, DATE_SUB(NOW(), INTERVAL 4 DAY)),
-(10, 14, 45000000, DATE_SUB(NOW(), INTERVAL 4 DAY)),
-(4, 18, 500000, DATE_SUB(NOW(), INTERVAL 4 DAY)),
-(5, 19, 7500000, DATE_SUB(NOW(), INTERVAL 5 DAY)),
-(1, 30, 28000000, DATE_SUB(NOW(), INTERVAL 5 DAY)),
-(2, 35, 1500000, DATE_SUB(NOW(), INTERVAL 5 DAY)),
-(6, 38, 9000000, DATE_SUB(NOW(), INTERVAL 5 DAY)),
-
--- [6 - 10 ngày trước] (Tuần trước)
-(7, 10, 12000000, DATE_SUB(NOW(), INTERVAL 6 DAY)),
-(8, 12, 3500000, DATE_SUB(NOW(), INTERVAL 6 DAY)),
-(3, 15, 21000000, DATE_SUB(NOW(), INTERVAL 7 DAY)),
-(9, 16, 600000, DATE_SUB(NOW(), INTERVAL 7 DAY)),
-(10, 18, 4500000, DATE_SUB(NOW(), INTERVAL 8 DAY)),
-(1, 20, 18000000, DATE_SUB(NOW(), INTERVAL 8 DAY)),
-(2, 21, 2500000, DATE_SUB(NOW(), INTERVAL 9 DAY)),
-(4, 25, 30000000, DATE_SUB(NOW(), INTERVAL 9 DAY)),
-(5, 28, 5500000, DATE_SUB(NOW(), INTERVAL 10 DAY)),
-(6, 30, 9000000, DATE_SUB(NOW(), INTERVAL 10 DAY)),
-
--- [11 - 15 ngày trước]
-(7, 33, 1500000, DATE_SUB(NOW(), INTERVAL 11 DAY)),
-(8, 35, 40000000, DATE_SUB(NOW(), INTERVAL 11 DAY)),
-(9, 40, 1200000, DATE_SUB(NOW(), INTERVAL 12 DAY)),
-(1, 5, 8000000, DATE_SUB(NOW(), INTERVAL 12 DAY)),
-(2, 7, 24000000, DATE_SUB(NOW(), INTERVAL 13 DAY)),
-(3, 9, 3500000, DATE_SUB(NOW(), INTERVAL 13 DAY)),
-(4, 11, 19000000, DATE_SUB(NOW(), INTERVAL 14 DAY)),
-(10, 13, 6500000, DATE_SUB(NOW(), INTERVAL 14 DAY)),
-(5, 14, 2000000, DATE_SUB(NOW(), INTERVAL 15 DAY)),
-(6, 17, 15000000, DATE_SUB(NOW(), INTERVAL 15 DAY)),
-
--- [16 - 20 ngày trước]
-(7, 22, 9000000, DATE_SUB(NOW(), INTERVAL 16 DAY)),
-(8, 24, 4500000, DATE_SUB(NOW(), INTERVAL 16 DAY)),
-(9, 26, 32000000, DATE_SUB(NOW(), INTERVAL 17 DAY)),
-(1, 29, 2800000, DATE_SUB(NOW(), INTERVAL 17 DAY)),
-(2, 31, 1000000, DATE_SUB(NOW(), INTERVAL 18 DAY)),
-(3, 34, 5000000, DATE_SUB(NOW(), INTERVAL 18 DAY)),
-(4, 37, 12000000, DATE_SUB(NOW(), INTERVAL 19 DAY)),
-(5, 39, 8500000, DATE_SUB(NOW(), INTERVAL 19 DAY)),
-(6, 1, 30000000, DATE_SUB(NOW(), INTERVAL 20 DAY)),
-(7, 3, 2000000, DATE_SUB(NOW(), INTERVAL 20 DAY)),
-
--- [21 - 25 ngày trước]
-(8, 6, 1500000, DATE_SUB(NOW(), INTERVAL 21 DAY)),
-(9, 8, 45000000, DATE_SUB(NOW(), INTERVAL 21 DAY)),
-(10, 10, 6000000, DATE_SUB(NOW(), INTERVAL 22 DAY)),
-(1, 12, 2200000, DATE_SUB(NOW(), INTERVAL 22 DAY)),
-(2, 15, 9500000, DATE_SUB(NOW(), INTERVAL 23 DAY)),
-(3, 18, 18000000, DATE_SUB(NOW(), INTERVAL 23 DAY)),
-(4, 20, 3500000, DATE_SUB(NOW(), INTERVAL 24 DAY)),
-(5, 23, 1200000, DATE_SUB(NOW(), INTERVAL 24 DAY)),
-(6, 25, 28000000, DATE_SUB(NOW(), INTERVAL 25 DAY)),
-(7, 27, 4000000, DATE_SUB(NOW(), INTERVAL 25 DAY)),
-
--- [26 - 28 ngày trước]
-(8, 30, 15000000, DATE_SUB(NOW(), INTERVAL 26 DAY)),
-(9, 32, 500000, DATE_SUB(NOW(), INTERVAL 26 DAY)),
-(10, 35, 7000000, DATE_SUB(NOW(), INTERVAL 26 DAY)),
-(1, 38, 21000000, DATE_SUB(NOW(), INTERVAL 27 DAY)),
-(2, 40, 9000000, DATE_SUB(NOW(), INTERVAL 27 DAY)),
-(3, 2, 33000000, DATE_SUB(NOW(), INTERVAL 27 DAY)),
-(4, 4, 2500000, DATE_SUB(NOW(), INTERVAL 28 DAY)),
-(5, 7, 12000000, DATE_SUB(NOW(), INTERVAL 28 DAY)),
-(6, 9, 4500000, DATE_SUB(NOW(), INTERVAL 28 DAY)),
-(7, 11, 55000000, DATE_SUB(NOW(), INTERVAL 28 DAY)),
-
--- [29 - 30 ngày trước] (Cũ nhất trong tháng)
-(8, 13, 1800000, DATE_SUB(NOW(), INTERVAL 29 DAY)),
-(9, 16, 26000000, DATE_SUB(NOW(), INTERVAL 29 DAY)),
-(10, 19, 3000000, DATE_SUB(NOW(), INTERVAL 29 DAY)),
-(1, 21, 8000000, DATE_SUB(NOW(), INTERVAL 29 DAY)),
-(2, 24, 15000000, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-(3, 26, 4000000, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-(4, 28, 9500000, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-(5, 31, 2200000, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-(6, 33, 10000000, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-(7, 36, 5000000, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-
--- [Các ngày ngẫu nhiên trong tháng để lấp đầy 100]
-(8, 39, 35000000, DATE_SUB(NOW(), INTERVAL 12 DAY)),
-(9, 1, 1200000, DATE_SUB(NOW(), INTERVAL 5 DAY)),
-(10, 5, 28000000, DATE_SUB(NOW(), INTERVAL 24 DAY)),
-(1, 8, 4500000, DATE_SUB(NOW(), INTERVAL 2 DAY)),
-(2, 12, 19000000, DATE_SUB(NOW(), INTERVAL 18 DAY)),
-(3, 15, 6000000, DATE_SUB(NOW(), INTERVAL 9 DAY)),
-(4, 20, 2500000, DATE_SUB(NOW(), INTERVAL 27 DAY)),
-(5, 25, 15000000, DATE_SUB(NOW(), INTERVAL 14 DAY)),
-(6, 30, 3000000, DATE_SUB(NOW(), INTERVAL 21 DAY)),
-(7, 35, 8500000, DATE_SUB(NOW(), INTERVAL 6 DAY)),
-(8, 40, 42000000, DATE_SUB(NOW(), INTERVAL 1 DAY)),
-(9, 1, 1200000, DATE_SUB(NOW(), INTERVAL 29 DAY)),
-(10, 5, 28000000, DATE_SUB(NOW(), INTERVAL 15 DAY)),
-(1, 8, 4500000, DATE_SUB(NOW(), INTERVAL 8 DAY)),
-(2, 12, 19000000, DATE_SUB(NOW(), INTERVAL 22 DAY)),
-(3, 15, 6000000, DATE_SUB(NOW(), INTERVAL 4 DAY)),
-(4, 20, 2500000, DATE_SUB(NOW(), INTERVAL 16 DAY)),
-(5, 25, 15000000, DATE_SUB(NOW(), INTERVAL 28 DAY)),
-(6, 30, 3000000, DATE_SUB(NOW(), INTERVAL 11 DAY)),
-(7, 35, 8500000, DATE_SUB(NOW(), INTERVAL 3 DAY));
-
--- B. CHI TIẾT HÓA ĐƠN (Detail)
--- Logic: ID lẻ -> Mua 1 cái. ID chẵn -> Mua 2 cái.
--- Unit_Price: Copy chính xác từ Products.
 INSERT INTO Invoice_details (inv_ID, pro_ID, ind_count, unit_price) VALUES
 (1, 1, 1, 45000000), (2, 2, 2, 15000000), (3, 3, 1, 25000000), (4, 4, 2, 22000000), (5, 5, 1, 18000000),
 (6, 6, 2, 35000000), (7, 7, 1, 55000000), (8, 8, 2, 28000000), (9, 9, 1, 60000000), (10, 10, 2, 33000000),
@@ -476,5 +437,3 @@ INSERT INTO Invoice_details (inv_ID, pro_ID, ind_count, unit_price) VALUES
 (86, 86, 2, 8600000), (87, 87, 1, 8700000), (88, 88, 2, 8800000), (89, 89, 1, 8900000), (90, 90, 2, 9000000),
 (91, 91, 1, 9100000), (92, 92, 2, 9200000), (93, 93, 1, 9300000), (94, 94, 2, 9400000), (95, 95, 1, 9500000),
 (96, 96, 2, 9600000), (97, 97, 1, 9700000), (98, 98, 2, 9800000), (99, 99, 1, 9900000), (100, 100, 2, 10000000);
-
-SET FOREIGN_KEY_CHECKS = 1;
