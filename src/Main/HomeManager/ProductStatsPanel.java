@@ -47,7 +47,7 @@ public class ProductStatsPanel extends JPanel {
         tableProduct.getColumnModel().getColumn(0).setMaxWidth(60);
         tableProduct.getColumnModel().getColumn(2).setMaxWidth(70);
         tableProduct.getColumnModel().getColumn(3).setMaxWidth(70);
-        pTableWrapper = createTableWithLabel(tableProduct, "TOP SẢN PHẨM BÁN CHẠY");
+        pTableWrapper = createTableWithLabel(tableProduct, "DANH SÁCH SẢN PHẨM BÁN CHẠY");
 
         this.add(pChartWrapper, BorderLayout.WEST);
         this.add(pTableWrapper, BorderLayout.CENTER);
@@ -77,7 +77,7 @@ public class ProductStatsPanel extends JPanel {
 
         String titlePeriod = period.toUpperCase();
         if (categoryName.equals("ALL")) {
-            setTableTitle("TOP SẢN PHẨM BÁN CHẠY (" + titlePeriod + ")");
+            setTableTitle("DANH SÁCH SẢN PHẨM BÁN CHẠY (" + titlePeriod + ")");
             sql = "SELECT p.pro_ID, p.pro_name, p.pro_count, " +
                     "SUM(d.ind_count) as qty, " +
                     "SUM(d.ind_count * d.unit_price) as total " +
@@ -86,7 +86,7 @@ public class ProductStatsPanel extends JPanel {
                     "JOIN Invoices i ON d.inv_ID = i.inv_ID " +
                     "WHERE " + dateFilter + " " +
                     "GROUP BY p.pro_ID, p.pro_name, p.pro_count " +
-                    "ORDER BY qty DESC LIMIT 20";
+                    "ORDER BY qty DESC"; // Đã bỏ LIMIT 20
         } else {
             setTableTitle("CHI TIẾT: " + categoryName.toUpperCase() + " (" + titlePeriod + ")");
             sql = "SELECT p.pro_ID, p.pro_name, p.pro_count, " +

@@ -14,23 +14,25 @@ import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 import static Utils.Style.*;
 
 public class ProductManagerPanel extends JPanel {
-    // --- 1. KHAI BÁO BIẾN GIAO DIỆN (UI COMPONENTS) ---
+    // --- 1. KHAI BÁO BIẾN GIAO DIỆN ---
     private JList<ComboItem> listProduct;
     private JTextField txtSearch, txtName, txtPrice, txtCount;
+    private JTextArea txtDescription;
     private JButton btnAdd, btnSave, btnDelete;
     private JButton btnEditType, btnAddType;
     private JButton btnAddSupplier;
     private JComboBox<ComboItem> cbType, cbSupplier;
     private JButton btnSort;
 
-    // --- 2. KHAI BÁO BIẾN TRẠNG THÁI (STATE VARIABLES) ---
+    // --- 2. KHAI BÁO BIẾN TRẠNG THÁI ---
     private int currentSortIndex = 0;
     private final String[] sortModes = {"A-Z", "Z-A", "PUP", "PDW", "NEW", "OLD"};
-    private int selectedProductID = -1;
+    private int selectedProductID = -1; // -1: Chế độ thêm mới
     private boolean isDataLoading = false;
 
     public ProductManagerPanel() {
@@ -48,17 +50,16 @@ public class ProductManagerPanel extends JPanel {
         this.setBorder(new EmptyBorder(10, 10, 10, 10));
         this.setBackground(Color.decode("#ecf0f1"));
 
-        // A. PANEL TRÁI
+        // A. PANEL TRÁI (DANH SÁCH)
         JPanel leftPanel = new JPanel(new BorderLayout(5, 5));
         leftPanel.setPreferredSize(new Dimension(250, 0));
         leftPanel.setOpaque(false);
 
         txtSearch = new JTextField();
         btnSort = new JButton("A-Z");
-        btnSort.setToolTipText("Đang xếp: Tên A-Z");
         btnSort.setFocusable(false);
 
-        JPanel searchPanel = createSearchWithButtonPanel(txtSearch, btnSort, "Tìm kiếm");
+        JPanel searchPanel = createSearchWithButtonPanel(txtSearch, btnSort, "Tìm kiếm", "Nhập tên sản phẩm...");
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
         listProduct = new JList<>();
@@ -66,66 +67,82 @@ public class ProductManagerPanel extends JPanel {
         listProduct.setFixedCellHeight(30);
         leftPanel.add(new JScrollPane(listProduct), BorderLayout.CENTER);
 
-        // B. PANEL PHẢI
-        JPanel rightPanel = new JPanel();
-        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
-        rightPanel.setBackground(Color.WHITE);
-        rightPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        // B. PANEL PHẢI (FORM + FOOTER)
 
-        rightPanel.add(createHeaderLabel("THÔNG TIN SẢN PHẨM"));
-        rightPanel.add(Box.createVerticalStrut(20));
+        // B1. Form nhập liệu (Cuộn được)
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setBackground(Color.WHITE);
+        formPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        formPanel.add(createHeaderLabel("THÔNG TIN SẢN PHẨM"));
+        formPanel.add(Box.createVerticalStrut(20));
 
         txtName = new JTextField();
-        rightPanel.add(createTextFieldWithLabel(txtName, "Tên Sản Phẩm:"));
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(createTextFieldWithLabel(txtName, "Tên Sản Phẩm:"));
+        formPanel.add(Box.createVerticalStrut(15));
 
         txtPrice = new JTextField();
-        rightPanel.add(createTextFieldWithLabel(txtPrice, "Giá Bán (VND):"));
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(createTextFieldWithLabel(txtPrice, "Giá Bán (VND):"));
+        formPanel.add(Box.createVerticalStrut(15));
 
         txtCount = new JTextField();
-        rightPanel.add(createTextFieldWithLabel(txtCount, "Số Lượng Tồn:"));
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(createTextFieldWithLabel(txtCount, "Số Lượng Tồn:"));
+        formPanel.add(Box.createVerticalStrut(15));
 
         cbType = new JComboBox<>();
         btnEditType = createSmallButton("Sửa", Color.GRAY);
         btnAddType = createSmallButton("Mới", Color.GRAY);
-        rightPanel.add(createComboBoxWithLabel(cbType,"Phân Loại:", btnEditType, btnAddType));
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(createComboBoxWithLabel(cbType,"Phân Loại:", btnEditType, btnAddType));
+        formPanel.add(Box.createVerticalStrut(15));
 
         cbSupplier = new JComboBox<>();
         btnAddSupplier = createSmallButton("Mới", Color.GRAY);
-        rightPanel.add(createComboBoxWithLabel(cbSupplier, "Nhà Cung Cấp:", btnAddSupplier, null));
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(createComboBoxWithLabel(cbSupplier, "Nhà Cung Cấp:", btnAddSupplier, null));
+        formPanel.add(Box.createVerticalStrut(15));
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(Color.WHITE);
+        txtDescription = new JTextArea(4, 20);
+        JPanel pDesc = createTextAreaWithLabel(txtDescription, "Mô tả / Ghi chú:");
+        formPanel.add(pDesc);
 
-        btnAdd = createButton("Tạo sản phẩm", Color.decode("#3498db"));
-        btnSave = createButton("Lưu thay đổi", new Color(46, 204, 113));
-        btnDelete = createButton("Xóa sản phẩm", new Color(231, 76, 60));
+        formPanel.add(Box.createVerticalGlue()); // Đẩy nội dung lên trên
+
+        JScrollPane scrollForm = new JScrollPane(formPanel);
+        scrollForm.setBorder(null);
+        scrollForm.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollForm.getVerticalScrollBar().setUnitIncrement(16);
+
+        // B2. Footer chứa nút (Cố định)
+        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        footerPanel.setBackground(Color.WHITE);
+        footerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY),
+                new EmptyBorder(5, 0, 5, 0)
+        ));
+
+        btnAdd = createButton("Tạo mới", Color.decode("#3498db"));
+        btnSave = createButton("Lưu", new Color(46, 204, 113));
+        btnDelete = createButton("Xóa", new Color(231, 76, 60));
 
         btnSave.setVisible(false);
         btnDelete.setVisible(false);
 
-        buttonPanel.add(btnAdd);
-        buttonPanel.add(btnSave);
-        buttonPanel.add(btnDelete);
-
-        rightPanel.add(buttonPanel);
-
-        // Thêm Scroll cho Panel phải
-        JScrollPane rightScroll = new JScrollPane(rightPanel);
-        rightScroll.setBorder(null);
-        rightScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        rightScroll.getVerticalScrollBar().setUnitIncrement(16);
-
-        this.add(leftPanel, BorderLayout.WEST);
-        this.add(rightScroll, BorderLayout.CENTER);
-
+        // Chỉ admin mới thấy nút Thêm
         if (!Utils.Session.isAdmin()) {
             btnAdd.setVisible(false);
         }
+
+        footerPanel.add(btnAdd);
+        footerPanel.add(btnSave);
+        footerPanel.add(btnDelete);
+
+        // B3. Ghép vào Panel phải
+        JPanel rightContainer = new JPanel(new BorderLayout());
+        rightContainer.add(scrollForm, BorderLayout.CENTER);
+        rightContainer.add(footerPanel, BorderLayout.SOUTH);
+
+        this.add(leftPanel, BorderLayout.WEST);
+        this.add(rightContainer, BorderLayout.CENTER);
 
         enableForm(false);
     }
@@ -134,11 +151,10 @@ public class ProductManagerPanel extends JPanel {
     private void loadListData() {
         DefaultListModel<ComboItem> model = new DefaultListModel<>();
         String keyword = txtSearch.getText().trim();
-        boolean isSearching = !keyword.isEmpty() && !keyword.equals("Tìm kiếm...");
+        boolean isSearching = !keyword.isEmpty() && !keyword.equals("Nhập tên sản phẩm...");
 
         try (Connection con = DBConnection.getConnection()) {
             StringBuilder sql = new StringBuilder("SELECT pro_id, pro_name FROM Products");
-
             if (isSearching) sql.append(" WHERE pro_name LIKE ?");
 
             switch (currentSortIndex) {
@@ -167,34 +183,20 @@ public class ProductManagerPanel extends JPanel {
         isDataLoading = true;
         cbType.removeAllItems();
         try (Connection con = DBConnection.getConnection()) {
-            String sql = "SELECT type_id, type_name FROM ProductTypes";
-            PreparedStatement ps = con.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                cbType.addItem(new ComboItem(rs.getString("type_name"), rs.getInt("type_id")));
-            }
-        } catch (Exception e) {
-            showError(this, "Lỗi: " + e.getMessage());
-        } finally {
-            isDataLoading = false;
-        }
+            ResultSet rs = con.createStatement().executeQuery("SELECT type_id, type_name FROM ProductTypes");
+            while (rs.next()) cbType.addItem(new ComboItem(rs.getString("type_name"), rs.getInt("type_id")));
+        } catch (Exception ignored) {}
+        finally { isDataLoading = false; }
     }
 
     private void loadSupplierData() {
         isDataLoading = true;
         cbSupplier.removeAllItems();
         try (Connection con = DBConnection.getConnection()) {
-            String sql = "SELECT sup_id, sup_name FROM Suppliers";
-            PreparedStatement ps = con.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                cbSupplier.addItem(new ComboItem(rs.getString("sup_name"), rs.getInt("sup_id")));
-            }
-        } catch (Exception e) {
-            showError(this, "Lỗi: " + e.getMessage());
-        } finally {
-            isDataLoading = false;
-        }
+            ResultSet rs = con.createStatement().executeQuery("SELECT sup_id, sup_name FROM Suppliers");
+            while (rs.next()) cbSupplier.addItem(new ComboItem(rs.getString("sup_name"), rs.getInt("sup_id")));
+        } catch (Exception ignored) {}
+        finally { isDataLoading = false; }
     }
 
     public void loadDetail(int id) {
@@ -210,30 +212,29 @@ public class ProductManagerPanel extends JPanel {
                 txtName.setText(rs.getString("pro_name"));
                 txtPrice.setText(String.format("%.0f", rs.getDouble("pro_price")));
                 txtCount.setText(String.valueOf(rs.getInt("pro_count")));
+                txtDescription.setText(rs.getString("pro_description"));
 
-                int typeID = rs.getInt("type_ID");
-                setSelectedComboItem(cbType, typeID);
+                setSelectedComboItem(cbType, rs.getInt("type_ID"));
+                setSelectedComboItem(cbSupplier, rs.getInt("sup_ID"));
 
-                int supID = rs.getInt("sup_ID");
-                setSelectedComboItem(cbSupplier, supID);
-
-                btnSave.setVisible(false);
-
+                // Logic hiển thị nút
                 if (Utils.Session.isAdmin()) {
                     enableForm(true);
-                    btnDelete.setVisible(true);
                     btnAdd.setVisible(true);
+                    btnDelete.setVisible(true);
+                    btnSave.setText("Lưu");
+                    btnSave.setVisible(false); // Chờ nhập liệu mới hiện
                 } else {
                     enableForm(false);
-                    btnDelete.setVisible(false);
                     btnAdd.setVisible(false);
+                    btnDelete.setVisible(false);
+                    btnSave.setVisible(false);
                 }
             }
         } catch (Exception e) {
             showError(this, "Lỗi: " + e.getMessage());
         }
         finally {
-            if (!Utils.Session.isAdmin()) btnSave.setVisible(false);
             isDataLoading = false;
         }
     }
@@ -257,114 +258,41 @@ public class ProductManagerPanel extends JPanel {
         });
 
         btnSort.addActionListener(e -> {
-            currentSortIndex++;
-            if (currentSortIndex >= sortModes.length) currentSortIndex = 0;
+            currentSortIndex = (currentSortIndex + 1) % sortModes.length;
             btnSort.setText(sortModes[currentSortIndex]);
             loadListData();
         });
 
-        // Nút thêm sản phẩm: Thêm xong tự chọn sản phẩm mới
-        btnAdd.addActionListener(e -> {
-            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
-            AddProductDialog addProductDialog = new AddProductDialog(parentFrame);
-            addProductDialog.setVisible(true);
+        // --- NÚT THÊM MỚI ---
+        btnAdd.addActionListener(e -> prepareCreate());
 
-            if (addProductDialog.isAddedSuccess()) {
-                // 1. Xóa ô tìm kiếm để đảm bảo hiển thị đủ danh sách
-                txtSearch.setText("");
+        // --- NÚT LƯU (Insert/Update) ---
+        btnSave.addActionListener(e -> saveProduct());
 
-                // 2. Tải lại danh sách
-                loadListData();
-
-                // 3. Lấy ID sản phẩm vừa tạo và chọn nó
-                int newID = addProductDialog.getNewProductID();
-                if (newID != -1) {
-                    selectProductByID(newID);
-                }
-            }
-        });
-
-        btnSave.addActionListener(e -> {
-            if (txtName.getText().trim().isEmpty()) { showError(this, "Tên không được để trống!"); return; }
-            try (Connection con = DBConnection.getConnection()) {
-                ComboItem selectedType = (ComboItem) cbType.getSelectedItem();
-                ComboItem selectedSup = (ComboItem) cbSupplier.getSelectedItem();
-                if (selectedType == null || selectedSup == null) { showError(this, "Chọn đủ thông tin!"); return; }
-
-                String sql = "UPDATE Products SET pro_name=?, pro_price=?, pro_count=?, type_ID=?, sup_ID=? WHERE pro_id=?";
-                PreparedStatement ps = con.prepareStatement(sql);
-                ps.setString(1, txtName.getText().trim());
-                ps.setDouble(2, Double.parseDouble(txtPrice.getText().trim()));
-                ps.setInt(3, Integer.parseInt(txtCount.getText().trim()));
-                ps.setInt(4, selectedType.getValue());
-                ps.setInt(5, selectedSup.getValue());
-                ps.setInt(6, selectedProductID);
-
-                if (ps.executeUpdate() > 0) {
-                    showSuccess(this, "Cập nhật thành công!");
-                    loadListData();
-
-                    // Vẫn giữ lựa chọn ở dòng hiện tại
-                    selectProductByID(selectedProductID);
-
-                    btnSave.setVisible(false);
-                }
-            } catch (Exception ex) {
-                showError(this, "Lỗi: " + ex.getMessage());
-            }
-        });
-
-        btnDelete.addActionListener(e -> {
-            if(showConfirm(this, "Xóa sản phẩm này?")){
-                try (Connection con = DBConnection.getConnection()) {
-                    PreparedStatement ps = con.prepareStatement("DELETE FROM Products WHERE pro_id=?");
-                    ps.setInt(1, selectedProductID);
-                    if (ps.executeUpdate() > 0) {
-                        loadListData();
-                        clearForm();
-                    }
-                } catch (Exception ex) {
-                    if (ex.getMessage().contains("foreign key")) showError(this, "Sản phẩm đã có giao dịch, không thể xóa!");
-                    else showError(this, "Lỗi: " + ex.getMessage());
-                }
-            }
-        });
+        // --- NÚT XÓA ---
+        btnDelete.addActionListener(e -> deleteProduct());
 
         btnAddType.addActionListener(e -> {
             JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
             TypeEditorDialog dialog = new TypeEditorDialog(parent);
             dialog.setVisible(true);
-
-            if (dialog.isUpdated()) {
-                loadTypeData();
-                selectNewestItem(cbType);
-            }
+            if (dialog.isUpdated()) { loadTypeData(); selectNewestItem(cbType); }
         });
 
         btnEditType.addActionListener(e -> {
             ComboItem currentItem = (ComboItem) cbType.getSelectedItem();
             if (currentItem == null) return;
-            int savedID = currentItem.getValue();
-
             JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
             TypeEditorDialog dialog = new TypeEditorDialog(parent, currentItem.getValue(), currentItem.toString());
             dialog.setVisible(true);
-
-            if (dialog.isUpdated()) {
-                loadTypeData();
-                setSelectedComboItem(cbType, savedID);
-            }
+            if (dialog.isUpdated()) { loadTypeData(); setSelectedComboItem(cbType, currentItem.getValue()); }
         });
 
         btnAddSupplier.addActionListener(e -> {
             JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
             AddSupplierDialog dialog = new AddSupplierDialog(parent);
             dialog.setVisible(true);
-
-            if (dialog.isAddedSuccess()) {
-                loadSupplierData();
-                selectNewestItem(cbSupplier);
-            }
+            if (dialog.isAddedSuccess()) { loadSupplierData(); selectNewestItem(cbSupplier); }
         });
 
         KeyAdapter numberFilter = new KeyAdapter() {
@@ -374,28 +302,123 @@ public class ProductManagerPanel extends JPanel {
         txtCount.addKeyListener(numberFilter);
     }
 
+    // --- CÁC HÀM LOGIC CHÍNH ---
+
+    private void prepareCreate() {
+        listProduct.clearSelection();
+        selectedProductID = -1; // Đánh dấu là Thêm Mới
+
+        isDataLoading = true;
+        txtName.setText(""); txtPrice.setText(""); txtCount.setText(""); txtDescription.setText("");
+        if(cbType.getItemCount()>0) cbType.setSelectedIndex(0);
+        if(cbSupplier.getItemCount()>0) cbSupplier.setSelectedIndex(0);
+        isDataLoading = false;
+
+        enableForm(true);
+        txtName.requestFocus();
+
+        btnAdd.setVisible(false);      // Ẩn nút Thêm
+        btnDelete.setVisible(false);   // Ẩn nút Xóa
+        btnSave.setText("Lưu");
+        btnSave.setVisible(true);      // Hiện nút Lưu
+    }
+
+    private void saveProduct() {
+        if (txtName.getText().trim().isEmpty()) { showError(this, "Tên không được để trống!"); return; }
+        if (txtPrice.getText().trim().isEmpty()) { showError(this, "Giá không được để trống!"); return; }
+
+        try (Connection con = DBConnection.getConnection()) {
+            ComboItem selectedType = (ComboItem) cbType.getSelectedItem();
+            ComboItem selectedSup = (ComboItem) cbSupplier.getSelectedItem();
+            if (selectedType == null || selectedSup == null) { showError(this, "Vui lòng chọn Loại và NCC!"); return; }
+
+            String name = txtName.getText().trim();
+            double price = Double.parseDouble(txtPrice.getText().trim());
+            int count = txtCount.getText().trim().isEmpty() ? 0 : Integer.parseInt(txtCount.getText().trim());
+            String desc = txtDescription.getText().trim();
+
+            if (selectedProductID == -1) {
+                // INSERT
+                String sql = "INSERT INTO Products (pro_name, pro_price, pro_count, type_ID, sup_ID, pro_description) VALUES (?,?,?,?,?,?)";
+                PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                ps.setString(1, name); ps.setDouble(2, price); ps.setInt(3, count);
+                ps.setInt(4, selectedType.getValue()); ps.setInt(5, selectedSup.getValue()); ps.setString(6, desc);
+                ps.executeUpdate();
+
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    showSuccess(this, "Thêm sản phẩm thành công!");
+                    loadListData();
+                    selectProductByID(rs.getInt(1)); // Chọn lại sp vừa thêm
+                }
+            } else {
+                // UPDATE
+                String sql = "UPDATE Products SET pro_name=?, pro_price=?, pro_count=?, type_ID=?, sup_ID=?, pro_description=? WHERE pro_id=?";
+                PreparedStatement ps = con.prepareStatement(sql);
+                ps.setString(1, name); ps.setDouble(2, price); ps.setInt(3, count);
+                ps.setInt(4, selectedType.getValue()); ps.setInt(5, selectedSup.getValue()); ps.setString(6, desc);
+                ps.setInt(7, selectedProductID);
+
+                if (ps.executeUpdate() > 0) {
+                    showSuccess(this, "Cập nhật thành công!");
+                    loadListData();
+                    selectProductByID(selectedProductID);
+                }
+            }
+        } catch (Exception ex) {
+            showError(this, "Lỗi: " + ex.getMessage());
+        }
+    }
+
+    private void deleteProduct() {
+        if(selectedProductID == -1) return;
+        if(showConfirm(this, "Bạn chắc chắn muốn xóa?")){
+            try (Connection con = DBConnection.getConnection()) {
+                PreparedStatement ps = con.prepareStatement("DELETE FROM Products WHERE pro_id=?");
+                ps.setInt(1, selectedProductID);
+                if (ps.executeUpdate() > 0) {
+                    showSuccess(this, "Đã xóa!");
+                    loadListData();
+                    clearForm();
+                }
+            } catch (Exception ex) {
+                if (ex.getMessage().contains("foreign key")) showError(this, "Sản phẩm đã có trong hóa đơn, không thể xóa!");
+                else showError(this, "Lỗi: " + ex.getMessage());
+            }
+        }
+    }
+
+    // --- CÁC HÀM TIỆN ÍCH ---
+
     private void addChangeListeners() {
         SimpleDocumentListener docListener = new SimpleDocumentListener(e -> {
-            if (!isDataLoading) btnSave.setVisible(true);
+            if (!isDataLoading && Utils.Session.isAdmin()) {
+                btnSave.setVisible(true);
+                if(selectedProductID != -1) btnSave.setText("Lưu");
+            }
         });
         txtName.getDocument().addDocumentListener(docListener);
         txtPrice.getDocument().addDocumentListener(docListener);
         txtCount.getDocument().addDocumentListener(docListener);
+        txtDescription.getDocument().addDocumentListener(docListener);
         cbType.addActionListener(e -> checkChange());
         cbSupplier.addActionListener(e -> checkChange());
     }
 
-    private void checkChange() {
-        if (!isDataLoading) btnSave.setVisible(true);
-    }
+    private void checkChange() { if (!isDataLoading && Utils.Session.isAdmin()) btnSave.setVisible(true); }
 
     private void clearForm() {
         isDataLoading = true;
-        txtName.setText(""); txtPrice.setText(""); txtCount.setText("");
+        txtName.setText(""); txtPrice.setText(""); txtCount.setText(""); txtDescription.setText("");
+        isDataLoading = false;
+
+        enableForm(false);
+        selectedProductID = -1;
+
+        // Trạng thái chờ
+        if (Utils.Session.isAdmin()) btnAdd.setVisible(true);
         btnSave.setVisible(false);
         btnDelete.setVisible(false);
-        enableForm(false);
-        isDataLoading = false;
     }
 
     private void enableForm(boolean enable) {
@@ -403,6 +426,7 @@ public class ProductManagerPanel extends JPanel {
         txtName.setEnabled(enable);
         txtPrice.setEnabled(enable);
         txtCount.setEnabled(enable);
+        txtDescription.setEnabled(enable);
         cbType.setEnabled(enable);
         cbSupplier.setEnabled(enable);
         btnEditType.setVisible(enable && isAdmin);
@@ -410,12 +434,10 @@ public class ProductManagerPanel extends JPanel {
         btnAddSupplier.setVisible(enable && isAdmin);
     }
 
-    // Hàm chọn sản phẩm trong JList theo ID
     private void selectProductByID(int id) {
         ListModel<ComboItem> model = listProduct.getModel();
         for (int i = 0; i < model.getSize(); i++) {
-            ComboItem item = model.getElementAt(i);
-            if (item.getValue() == id) {
+            if (model.getElementAt(i).getValue() == id) {
                 listProduct.setSelectedIndex(i);
                 listProduct.ensureIndexIsVisible(i);
                 break;
@@ -425,27 +447,12 @@ public class ProductManagerPanel extends JPanel {
 
     private void setSelectedComboItem(JComboBox<ComboItem> cb, int id) {
         for (int i = 0; i < cb.getItemCount(); i++) {
-            if (cb.getItemAt(i).getValue() == id) {
-                cb.setSelectedIndex(i);
-                break;
-            }
+            if (cb.getItemAt(i).getValue() == id) { cb.setSelectedIndex(i); break; }
         }
     }
 
     private void selectNewestItem(JComboBox<ComboItem> cb) {
-        int maxId = Integer.MIN_VALUE;
-        int indexToSelect = -1;
-        for (int i = 0; i < cb.getItemCount(); i++) {
-            ComboItem item = cb.getItemAt(i);
-            if (item != null && item.getValue() > maxId) {
-                maxId = item.getValue();
-                indexToSelect = i;
-            }
-        }
-        if (indexToSelect != -1) {
-            cb.setSelectedIndex(indexToSelect);
-            cb.repaint();
-        }
+        if(cb.getItemCount() > 0) cb.setSelectedIndex(cb.getItemCount()-1);
     }
 
     public void refreshData() {
@@ -455,9 +462,7 @@ public class ProductManagerPanel extends JPanel {
         selectProductByID(selectedProductID);
     }
 
-    @FunctionalInterface
-    interface DocumentUpdateListener { void update(DocumentEvent e); }
-
+    @FunctionalInterface interface DocumentUpdateListener { void update(DocumentEvent e); }
     static class SimpleDocumentListener implements DocumentListener {
         private final DocumentUpdateListener listener;
         public SimpleDocumentListener(DocumentUpdateListener listener) { this.listener = listener; }

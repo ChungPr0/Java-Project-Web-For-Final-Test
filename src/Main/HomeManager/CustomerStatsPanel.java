@@ -46,12 +46,12 @@ public class CustomerStatsPanel extends JPanel {
             JButton btnExport = createSmallButton("Xuất Excel", Color.decode("#1D6F42"));
             btnExport.setPreferredSize(new Dimension(100, 35));
             btnExport.addActionListener(e -> {
-                String fileName = "Top_Khách_Hàng_" + currentPeriod.replace(" ", "_");
+                String fileName = "Danh_Sách_Khách_Hàng_" + currentPeriod.replace(" ", "_");
                 exportToExcel(table, fileName);
             });
-            pTableWrapper = createTableWithLabel(table, "TOP KHÁCH HÀNG", btnExport);
+            pTableWrapper = createTableWithLabel(table, "DANH SÁCH KHÁCH HÀNG", btnExport);
         } else {
-            pTableWrapper = createTableWithLabel(table, "TOP KHÁCH HÀNG");
+            pTableWrapper = createTableWithLabel(table, "DANH SÁCH KHÁCH HÀNG");
         }
         this.add(pTableWrapper, BorderLayout.CENTER);
 
@@ -70,7 +70,7 @@ public class CustomerStatsPanel extends JPanel {
 
     public void loadData(String period) {
         this.currentPeriod = period; // Cập nhật biến toàn cục
-        setTableTitle("TOP KHÁCH HÀNG CHI TIÊU NHIỀU NHẤT (" + period.toUpperCase() + ")");
+        setTableTitle("DANH SÁCH KHÁCH HÀNG (" + period.toUpperCase() + ")");
         tableModel.setRowCount(0);
         String dateFilter = getSqlDateFilter(period);
 
@@ -79,7 +79,7 @@ public class CustomerStatsPanel extends JPanel {
                 "JOIN Customers c ON i.cus_ID = c.cus_ID " +
                 "WHERE " + dateFilter + " " +
                 "GROUP BY c.cus_ID, c.cus_name, c.cus_phone " +
-                "ORDER BY total DESC LIMIT 20";
+                "ORDER BY total DESC"; // Đã bỏ LIMIT 20
 
         try (Connection con = DBConnection.getConnection()) {
             ResultSet rs = con.createStatement().executeQuery(sql);

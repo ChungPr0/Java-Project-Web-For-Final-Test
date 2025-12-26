@@ -6,6 +6,7 @@ import Main.SupplierManager.SupplierManagerPanel;
 import Main.CustomerManager.CustomerManagerPanel;
 import Main.ProductManager.ProductManagerPanel;
 import Main.InvoiceManager.InvoiceManagerPanel;
+import Main.DiscountManager.DiscountManagerPanel; // [MỚI] Import Panel Khuyến mãi
 import Main.LoginManager.LoginForm;
 import Main.LoginManager.ChangePasswordDialog;
 import Utils.Session;
@@ -26,20 +27,21 @@ public class DashBoard extends JFrame {
     private CardLayout cardLayout;
 
     // Các nút Menu
-    private JButton btnHome, btnStaff, btnSupplier, btnCustomer, btnProduct, btnInvoice;
-    private JButton currentActiveButton; // Biến theo dõi nút đang được chọn
+    private JButton btnHome, btnStaff, btnSupplier, btnCustomer, btnProduct, btnDiscount, btnInvoice; // [MỚI] Thêm btnDiscount
+    private JButton currentActiveButton;
 
-    // Các Panel chức năng (Cache để tránh new lại nhiều lần gây chậm)
+    // Các Panel chức năng
     private HomeManagerPanel homePanel;
     private StaffManagerPanel staffPanel;
     private SupplierManagerPanel supplierPanel;
     private CustomerManagerPanel customerPanel;
     private ProductManagerPanel productPanel;
+    private DiscountManagerPanel discountPanel; // [MỚI] Khai báo Panel
     private InvoiceManagerPanel invoicePanel;
 
     public DashBoard() {
         super("Quản Lý Cửa Hàng");
-        this.setSize(950, 650);
+        this.setSize(1050, 680); // Tăng kích thước chiều ngang một chút để chứa đủ nút
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLocationRelativeTo(null);
 
@@ -51,28 +53,31 @@ public class DashBoard extends JFrame {
     private void initUI() {
         JPanel mainContainer = new JPanel(new BorderLayout());
 
-        // A. MENU BAR (Sửa lại toàn bộ đoạn này)
+        // A. MENU BAR
         JPanel menuPanel = new JPanel();
-        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.X_AXIS)); // Xếp hàng ngang
+        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.X_AXIS));
         menuPanel.setBackground(Color.decode("#2c3e50"));
         menuPanel.setPreferredSize(new Dimension(0, 50));
 
-        // 1. Tạo và thêm các nút bên Trái
+        // 1. Tạo các nút
         btnHome = createMenuButton("TRANG CHỦ");
         btnStaff = createMenuButton("NHÂN VIÊN");
         btnSupplier = createMenuButton("NHÀ CUNG CẤP");
         btnCustomer = createMenuButton("KHÁCH HÀNG");
         btnProduct = createMenuButton("SẢN PHẨM");
+        btnDiscount = createMenuButton("KHUYẾN MÃI"); // [MỚI] Tạo nút
         btnInvoice = createMenuButton("HÓA ĐƠN");
 
+        // 2. Thêm vào thanh Menu
         menuPanel.add(btnHome);
         menuPanel.add(btnStaff);
         menuPanel.add(btnSupplier);
         menuPanel.add(btnCustomer);
         menuPanel.add(btnProduct);
+        menuPanel.add(btnDiscount); // [MỚI]
         menuPanel.add(btnInvoice);
 
-        // Thêm "Lò xo" ở giữa (Quan trọng: Đẩy nút Tài khoản sang phải)
+        // Thêm "Lò xo" ở giữa
         menuPanel.add(Box.createHorizontalGlue());
 
         JButton btnInfo = createMenuButton("TÀI KHOẢN");
@@ -80,7 +85,7 @@ public class DashBoard extends JFrame {
 
         menuPanel.add(btnInfo);
 
-        // B. CONTENT AREA (Khu vực nội dung chính)
+        // B. CONTENT AREA
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);
 
@@ -90,6 +95,7 @@ public class DashBoard extends JFrame {
         supplierPanel = new SupplierManagerPanel();
         customerPanel = new CustomerManagerPanel();
         productPanel = new ProductManagerPanel();
+        discountPanel = new DiscountManagerPanel(); // [MỚI]
         invoicePanel = new InvoiceManagerPanel();
 
         // Thêm vào CardLayout với tên định danh
@@ -98,6 +104,7 @@ public class DashBoard extends JFrame {
         contentPanel.add(supplierPanel, "SUPPLIER");
         contentPanel.add(customerPanel, "CUSTOMER");
         contentPanel.add(productPanel, "PRODUCT");
+        contentPanel.add(discountPanel, "DISCOUNT"); // [MỚI]
         contentPanel.add(invoicePanel, "INVOICE");
 
         mainContainer.add(menuPanel, BorderLayout.NORTH);
@@ -105,24 +112,27 @@ public class DashBoard extends JFrame {
 
         this.setContentPane(mainContainer);
 
-        // C. PHÂN QUYỀN (Ẩn nút nếu không phải Admin)
+        // C. PHÂN QUYỀN TRÊN MENU (Ẩn nút nếu không phải Admin)
         if (!Utils.Session.isAdmin()) {
             btnStaff.setVisible(false);
             btnSupplier.setVisible(false);
+            // Lưu ý: btnDiscount vẫn hiện với nhân viên để họ xem mã,
+            // nhưng trong panel đó họ sẽ không thấy nút Sửa/Xóa (do logic bên trong panel xử lý).
         }
     }
 
     // --- 3. XỬ LÝ SỰ KIỆN ---
     private void addEvents() {
-        // Gán sự kiện chuyển Tab cho từng nút
+        // Gán sự kiện chuyển Tab
         btnHome.addActionListener(e -> switchTab("HOME", homePanel, btnHome));
         btnStaff.addActionListener(e -> switchTab("STAFF", staffPanel, btnStaff));
         btnSupplier.addActionListener(e -> switchTab("SUPPLIER", supplierPanel, btnSupplier));
         btnCustomer.addActionListener(e -> switchTab("CUSTOMER", customerPanel, btnCustomer));
         btnProduct.addActionListener(e -> switchTab("PRODUCT", productPanel, btnProduct));
+        btnDiscount.addActionListener(e -> switchTab("DISCOUNT", discountPanel, btnDiscount)); // [MỚI]
         btnInvoice.addActionListener(e -> switchTab("INVOICE", invoicePanel, btnInvoice));
 
-        // Mặc định chọn Trang chủ khi mở lên
+        // Mặc định chọn Trang chủ
         updateActiveButton(btnHome);
     }
 
@@ -132,12 +142,13 @@ public class DashBoard extends JFrame {
     private void switchTab(String cardName, Object panel, JButton btn) {
         cardLayout.show(contentPanel, cardName);
 
-        // Gọi hàm refreshData tương ứng với từng loại Panel
+        // Gọi hàm refreshData tương ứng
         if (panel instanceof HomeManagerPanel) ((HomeManagerPanel) panel).refreshData();
         else if (panel instanceof StaffManagerPanel) ((StaffManagerPanel) panel).refreshData();
         else if (panel instanceof SupplierManagerPanel) ((SupplierManagerPanel) panel).refreshData();
         else if (panel instanceof CustomerManagerPanel) ((CustomerManagerPanel) panel).refreshData();
         else if (panel instanceof ProductManagerPanel) ((ProductManagerPanel) panel).refreshData();
+        else if (panel instanceof DiscountManagerPanel) ((DiscountManagerPanel) panel).refreshData(); // [MỚI]
         else if (panel instanceof InvoiceManagerPanel) ((InvoiceManagerPanel) panel).refreshData();
 
         updateActiveButton(btn);
@@ -149,19 +160,18 @@ public class DashBoard extends JFrame {
     private void updateActiveButton(JButton activeBtn) {
         currentActiveButton = activeBtn;
 
-        JButton[] btns = {btnHome, btnStaff, btnSupplier, btnCustomer, btnProduct, btnInvoice};
+        // [MỚI] Thêm btnDiscount vào mảng
+        JButton[] btns = {btnHome, btnStaff, btnSupplier, btnCustomer, btnProduct, btnDiscount, btnInvoice};
+
         for (JButton btn : btns) {
             if (btn == activeBtn) {
-                btn.setBackground(Color.decode("#3498db")); // Màu Xanh (Active)
+                btn.setBackground(Color.decode("#3498db")); // Xanh (Active)
             } else {
-                btn.setBackground(Color.decode("#2c3e50")); // Màu Đen (Inactive)
+                btn.setBackground(Color.decode("#2c3e50")); // Đen (Inactive)
             }
         }
     }
 
-    /**
-     * Hàm tạo nút Menu với style chuẩn
-     */
     private JButton createMenuButton(String text) {
         JButton btn = new JButton(text);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -180,60 +190,38 @@ public class DashBoard extends JFrame {
 
         btn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                // Hover vào luôn hiện màu xanh
                 btn.setBackground(Color.decode("#3498db"));
             }
-
             public void mouseExited(MouseEvent e) {
-                // Chỉ trả về màu đen nếu nút này KHÔNG phải là nút đang chọn
                 if (btn != currentActiveButton) {
                     btn.setBackground(Color.decode("#2c3e50"));
                 }
             }
         });
-
         return btn;
     }
 
-    /**
-     * Hàm Public để gọi từ Dashboard (Click vào Sản phẩm -> Sang tab sản phẩm)
-     */
+    // --- CÁC HÀM PUBLIC HELPER ---
+
     public void showProductAndLoad(int proID) {
         cardLayout.show(contentPanel, "PRODUCT");
         updateActiveButton(btnProduct);
-
-        if (productPanel != null) {
-            productPanel.loadDetail(proID);
-        }
+        if (productPanel != null) productPanel.loadDetail(proID);
     }
 
-    /**
-     * Hàm Public để gọi từ Dashboard (Click vào Top khách hàng -> Sang tab khách hàng)
-     */
     public void showCustomerAndLoad(int cusID) {
         cardLayout.show(contentPanel, "CUSTOMER");
         updateActiveButton(btnCustomer);
-        if (customerPanel != null) {
-            customerPanel.loadDetail(cusID);
-        }
+        if (customerPanel != null) customerPanel.loadDetail(cusID);
     }
 
-    /**
-     * Hàm Public để gọi từ Dashboard (Click vào Top hóa đơn -> Sang tab hóa đơn)
-     */
     public void showInvoiceAndLoad(int invID) {
         cardLayout.show(contentPanel, "INVOICE");
         updateActiveButton(btnInvoice);
-        if (invoicePanel != null) {
-            invoicePanel.loadDetail(invID);
-        }
+        if (invoicePanel != null) invoicePanel.loadDetail(invID);
     }
 
-    /**
-     * CẤU HÌNH POPUP TÀI KHOẢN
-     */
     private void setupUserPopup(JButton btnTarget) {
-        // --- Phần 1: Tạo giao diện Popup ---
         JPopupMenu popupProfile = new JPopupMenu();
         popupProfile.setBackground(Color.WHITE);
         popupProfile.setBorder(BorderFactory.createLineBorder(Color.decode("#bdc3c7"), 1));
@@ -253,11 +241,7 @@ public class DashBoard extends JFrame {
         lblUser.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblUser.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        String role = "Nhân viên";
-        if (Objects.equals(Utils.Session.userRole, "Admin")) {
-            role = "Quản lý";
-        }
-
+        String role = Objects.equals(Utils.Session.userRole, "Admin") ? "Quản lý" : "Nhân viên";
         JLabel lblRole = new JLabel("Vai trò: " + role);
         lblRole.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         lblRole.setForeground(Color.GRAY);
@@ -297,16 +281,12 @@ public class DashBoard extends JFrame {
         pContent.add(btnChangePass);
         pContent.add(Box.createVerticalStrut(10));
         pContent.add(btnLogout);
-        pContent.add(Box.createVerticalStrut(5));
 
         popupProfile.add(pContent);
 
-        //--- Phần 12: Sự kiện Click: Hiện Popup --
         btnTarget.addActionListener(e -> {
             if (!popupProfile.isVisible()) {
-                popupProfile.show(btnTarget,
-                        btnTarget.getWidth() - popupProfile.getPreferredSize().width,
-                        btnTarget.getHeight());
+                popupProfile.show(btnTarget, btnTarget.getWidth() - popupProfile.getPreferredSize().width, btnTarget.getHeight());
             } else {
                 popupProfile.setVisible(false);
             }

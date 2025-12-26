@@ -20,6 +20,7 @@ public class AddProductDialog extends JDialog {
 
     // --- 1. KHAI BÁO BIẾN GIAO DIỆN (UI) ---
     private JTextField txtName, txtPrice, txtCount;
+    private JTextArea txtDescription; // Thêm ô mô tả
     private JComboBox<ComboItem> cbType, cbSupplier;
     private JButton btnAddType, btnAddSupplier;
     private JButton btnSave, btnCancel;
@@ -76,6 +77,12 @@ public class AddProductDialog extends JDialog {
         btnAddSupplier = createSmallButton("Mới", Color.GRAY);
         mainPanel.add(createComboBoxWithLabel(cbSupplier, "Nhà Cung Cấp:", btnAddSupplier, null));
         mainPanel.add(Box.createVerticalStrut(15));
+
+        // Mô tả sản phẩm
+        txtDescription = new JTextArea(4, 20);
+        JPanel pDesc = createTextAreaWithLabel(txtDescription, "Mô tả / Ghi chú:");
+        mainPanel.add(pDesc);
+        mainPanel.add(Box.createVerticalStrut(16));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         buttonPanel.setBackground(Color.WHITE);
@@ -163,7 +170,7 @@ public class AddProductDialog extends JDialog {
                     return;
                 }
 
-                String sql = "INSERT INTO Products (pro_name, pro_price, pro_count, type_ID, sup_ID) VALUES (?, ?, ?, ?, ?)";
+                String sql = "INSERT INTO Products (pro_name, pro_price, pro_count, type_ID, sup_ID, pro_description) VALUES (?, ?, ?, ?, ?, ?)";
 
                 // Thêm tham số RETURN_GENERATED_KEYS để lấy ID
                 PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -173,6 +180,7 @@ public class AddProductDialog extends JDialog {
                 ps.setInt(3, Integer.parseInt(txtCount.getText().trim()));
                 ps.setInt(4, selectedType.getValue());
                 ps.setInt(5, selectedSup.getValue());
+                ps.setString(6, txtDescription.getText().trim()); // Thêm mô tả
 
                 int rows = ps.executeUpdate();
                 if (rows > 0) {

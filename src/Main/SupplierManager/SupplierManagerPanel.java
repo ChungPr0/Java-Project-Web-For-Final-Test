@@ -18,7 +18,7 @@ import java.text.DecimalFormat;
 import static Utils.Style.*;
 
 public class SupplierManagerPanel extends JPanel {
-    // --- KHAI BÁO BIẾN GIAO DIỆN ---
+    // --- 1. KHAI BÁO BIẾN GIAO DIỆN ---
     private JList<ComboItem> listSupplier;
     private JTextField txtSearch, txtName, txtPhone, txtAddress;
     private JTextArea txtDescription;
@@ -26,14 +26,14 @@ public class SupplierManagerPanel extends JPanel {
     private JButton btnAdd, btnSave, btnDelete;
     private JButton btnSort;
 
-    // [MỚI] Khai báo bảng sản phẩm
+    // Bảng sản phẩm
     private JTable tableProducts;
     private DefaultTableModel modelProducts;
 
-    // --- BIẾN TRẠNG THÁI ---
+    // --- 2. BIẾN TRẠNG THÁI ---
     private int currentSortIndex = 0;
     private final String[] sortModes = {"A-Z", "Z-A", "NEW", "OLD"};
-    private int selectedSupID = -1;
+    private int selectedSupID = -1; // -1: Chế độ thêm mới
     private boolean isDataLoading = false;
 
     public SupplierManagerPanel() {
@@ -44,23 +44,22 @@ public class SupplierManagerPanel extends JPanel {
         addChangeListeners();
     }
 
-    // --- 1. KHỞI TẠO GIAO DIỆN (UI) ---
+    // --- 3. KHỞI TẠO GIAO DIỆN ---
     private void initUI() {
         this.setLayout(new BorderLayout(10, 10));
         this.setBorder(new EmptyBorder(10, 10, 10, 10));
         this.setBackground(Color.decode("#ecf0f1"));
 
-        // A. PANEL TRÁI
+        // A. PANEL TRÁI (DANH SÁCH)
         JPanel leftPanel = new JPanel(new BorderLayout(5, 5));
         leftPanel.setPreferredSize(new Dimension(250, 0));
         leftPanel.setOpaque(false);
 
         txtSearch = new JTextField();
         btnSort = new JButton("A-Z");
-        btnSort.setToolTipText("Đang xếp: Tên A-Z");
         btnSort.setFocusable(false);
 
-        JPanel searchPanel = createSearchWithButtonPanel(txtSearch, btnSort, "Tìm kiếm");
+        JPanel searchPanel = createSearchWithButtonPanel(txtSearch, btnSort, "Tìm kiếm", "Nhập tên nhà cung cấp...");
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
         listSupplier = new JList<>();
@@ -68,99 +67,107 @@ public class SupplierManagerPanel extends JPanel {
         listSupplier.setFixedCellHeight(30);
         leftPanel.add(new JScrollPane(listSupplier), BorderLayout.CENTER);
 
-        // B. PANEL PHẢI
-        JPanel rightPanel = new JPanel();
-        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
-        rightPanel.setBackground(Color.WHITE);
-        rightPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        // B. PANEL PHẢI (FORM + TABLE + FOOTER)
 
-        rightPanel.add(createHeaderLabel("THÔNG TIN NHÀ CUNG CẤP"));
-        rightPanel.add(Box.createVerticalStrut(20));
+        // B1. Form Panel (Cuộn được)
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setBackground(Color.WHITE);
+        formPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        formPanel.add(createHeaderLabel("THÔNG TIN NHÀ CUNG CẤP"));
+        formPanel.add(Box.createVerticalStrut(20));
 
         txtName = new JTextField();
-        rightPanel.add(createTextFieldWithLabel(txtName, "Tên Nhà Cung Cấp:"));
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(createTextFieldWithLabel(txtName, "Tên Nhà Cung Cấp:"));
+        formPanel.add(Box.createVerticalStrut(15));
 
-        cbDay = new JComboBox<>();
-        cbMonth = new JComboBox<>();
-        cbYear = new JComboBox<>();
+        cbDay = new JComboBox<>(); cbMonth = new JComboBox<>(); cbYear = new JComboBox<>();
         JPanel pDate = createDatePanel("Ngày bắt đầu hợp tác:", cbDay, cbMonth, cbYear);
-        rightPanel.add(pDate);
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(pDate);
+        formPanel.add(Box.createVerticalStrut(15));
 
         txtPhone = new JTextField();
-        rightPanel.add(createTextFieldWithLabel(txtPhone, "Số điện thoại:"));
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(createTextFieldWithLabel(txtPhone, "Số điện thoại:"));
+        formPanel.add(Box.createVerticalStrut(15));
 
         txtAddress = new JTextField();
-        rightPanel.add(createTextFieldWithLabel(txtAddress, "Địa chỉ:"));
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(createTextFieldWithLabel(txtAddress, "Địa chỉ:"));
+        formPanel.add(Box.createVerticalStrut(15));
 
         txtDescription = new JTextArea(4, 20);
         JPanel pDescription = createTextAreaWithLabel(txtDescription, "Mô tả / Ghi chú:");
-        rightPanel.add(pDescription);
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(pDescription);
+        formPanel.add(Box.createVerticalStrut(15));
 
+        // Bảng sản phẩm cung cấp
         String[] cols = {"Mã SP", "Tên Sản Phẩm", "Giá Bán", "Tồn Kho", "Đã Bán"};
         modelProducts = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
         tableProducts = new JTable(modelProducts);
 
+        // Căn giữa cột Mã SP
         javax.swing.table.DefaultTableCellRenderer centerRenderer = new javax.swing.table.DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
         tableProducts.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
-
         tableProducts.getColumnModel().getColumn(0).setMaxWidth(50);
-        tableProducts.getColumnModel().getColumn(0).setMinWidth(50);
 
         JPanel pTable = createTableWithLabel(tableProducts, "CÁC SẢN PHẨM CUNG CẤP");
-        pTable.setPreferredSize(new Dimension(0, 180));
+        pTable.setPreferredSize(new Dimension(0, 180)); // Chiều cao cố định cho bảng
+        formPanel.add(pTable);
 
-        rightPanel.add(pTable);
-        rightPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(Box.createVerticalGlue()); // Đẩy nội dung lên trên
 
-        // C. KHU VỰC NÚT BẤM
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(Color.WHITE);
+        JScrollPane scrollForm = new JScrollPane(formPanel);
+        scrollForm.setBorder(null);
+        scrollForm.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollForm.getVerticalScrollBar().setUnitIncrement(16);
 
-        btnAdd = createButton("Thêm nhà cung cấp", Color.decode("#3498db"));
-        btnSave = createButton("Lưu thay đổi", new Color(46, 204, 113));
-        btnDelete = createButton("Xóa nhà cung cấp", new Color(231, 76, 60));
+        // B2. Footer Panel (Cố định)
+        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        footerPanel.setBackground(Color.WHITE);
+        footerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY),
+                new EmptyBorder(5, 0, 5, 0)
+        ));
+
+        btnAdd = createButton("Tạo mới", Color.decode("#3498db"));
+        btnSave = createButton("Lưu", new Color(46, 204, 113));
+        btnDelete = createButton("Xóa", new Color(231, 76, 60));
 
         btnSave.setVisible(false);
         btnDelete.setVisible(false);
 
-        buttonPanel.add(btnAdd);
-        buttonPanel.add(btnSave);
-        buttonPanel.add(btnDelete);
+        // Chỉ Admin mới thấy nút Thêm
+        if (!Utils.Session.isAdmin()) {
+            btnAdd.setVisible(false);
+        }
 
-        rightPanel.add(buttonPanel);
+        footerPanel.add(btnAdd);
+        footerPanel.add(btnSave);
+        footerPanel.add(btnDelete);
 
-        // Thêm Scroll cho Panel phải
-        JScrollPane rightScroll = new JScrollPane(rightPanel);
-        rightScroll.setBorder(null);
-        rightScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        rightScroll.getVerticalScrollBar().setUnitIncrement(16);
+        // B3. Ghép vào Panel Phải
+        JPanel rightContainer = new JPanel(new BorderLayout());
+        rightContainer.add(scrollForm, BorderLayout.CENTER);
+        rightContainer.add(footerPanel, BorderLayout.SOUTH);
 
         this.add(leftPanel, BorderLayout.WEST);
-        this.add(rightScroll, BorderLayout.CENTER);
+        this.add(rightContainer, BorderLayout.CENTER);
 
         enableForm(false);
     }
 
-    // --- 2. TẢI DỮ LIỆU DANH SÁCH ---
+    // --- 4. TẢI DỮ LIỆU ---
     private void loadListData() {
         DefaultListModel<ComboItem> model = new DefaultListModel<>();
         String keyword = txtSearch.getText().trim();
-        boolean isSearching = !keyword.isEmpty() && !keyword.equals("Tìm kiếm...");
+        boolean isSearching = !keyword.isEmpty() && !keyword.equals("Nhập tên nhà cung cấp...");
 
         try (Connection con = DBConnection.getConnection()) {
             StringBuilder sql = new StringBuilder("SELECT sup_id, sup_name FROM Suppliers");
-
-            if (isSearching) {
-                sql.append(" WHERE sup_name LIKE ?");
-            }
+            if (isSearching) sql.append(" WHERE sup_name LIKE ?");
 
             switch (currentSortIndex) {
                 case 1: sql.append(" ORDER BY sup_name DESC"); break;
@@ -170,16 +177,11 @@ public class SupplierManagerPanel extends JPanel {
             }
 
             PreparedStatement ps = con.prepareStatement(sql.toString());
-
-            if (isSearching) {
-                ps.setString(1, "%" + keyword + "%");
-            }
+            if (isSearching) ps.setString(1, "%" + keyword + "%");
 
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                int id = rs.getInt("sup_id");
-                String name = rs.getString("sup_name");
-                model.addElement(new ComboItem(name, id));
+                model.addElement(new ComboItem(rs.getString("sup_name"), rs.getInt("sup_id")));
             }
             listSupplier.setModel(model);
         } catch (Exception e) {
@@ -192,15 +194,15 @@ public class SupplierManagerPanel extends JPanel {
         DecimalFormat df = new DecimalFormat("#,###");
 
         try (Connection con = DBConnection.getConnection()) {
-            // Query lấy thông tin SP + Tổng đã bán (từ invoice_details)
+            // Lấy SP + tổng số lượng đã bán (từ chi tiết hóa đơn)
             String sql = """
-                SELECT p.pro_id, p.pro_name, p.pro_price, p.pro_count,\s
+                SELECT p.pro_id, p.pro_name, p.pro_price, p.pro_count,
                        COALESCE(SUM(d.ind_count), 0) as sold_count
                 FROM Products p
                 LEFT JOIN Invoice_details d ON p.pro_id = d.pro_id
                 WHERE p.sup_id = ?
                 GROUP BY p.pro_id, p.pro_name, p.pro_price, p.pro_count
-           \s""";
+            """;
 
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, supID);
@@ -218,7 +220,6 @@ public class SupplierManagerPanel extends JPanel {
         } catch (Exception ignored) {}
     }
 
-    // --- 3. TẢI CHI TIẾT ---
     private void loadDetail(int id) {
         isDataLoading = true;
         try (Connection con = DBConnection.getConnection()) {
@@ -229,31 +230,24 @@ public class SupplierManagerPanel extends JPanel {
 
             if (rs.next()) {
                 selectedSupID = rs.getInt("sup_id");
-
                 txtName.setText(rs.getString("sup_name"));
                 txtPhone.setText(rs.getString("sup_phone"));
                 txtAddress.setText(rs.getString("sup_address"));
                 txtDescription.setText(rs.getString("sup_description"));
 
-                String dateStr = rs.getString("sup_start_date");
-                if (dateStr != null && !dateStr.isEmpty()) {
-                    String[] parts = dateStr.split("-");
-                    if (parts.length == 3) {
-                        cbYear.setSelectedItem(parts[0]);
-                        cbMonth.setSelectedItem(parts[1]);
-                        cbDay.setSelectedItem(parts[2]);
-                    }
-                } else {
-                    // Set to a default if date is null or empty
-                    cbYear.setSelectedIndex(0);
-                    cbMonth.setSelectedIndex(0);
-                    cbDay.setSelectedIndex(0);
-                }
+                setComboBoxDate(rs.getString("sup_start_date"), cbDay, cbMonth, cbYear);
 
-                enableForm(true);
-                btnDelete.setVisible(true);
-                btnSave.setVisible(false);
-                btnAdd.setVisible(true);
+                if (Utils.Session.isAdmin()) {
+                    enableForm(true);
+                    btnAdd.setVisible(true);
+                    btnDelete.setVisible(true);
+                    btnSave.setText("Lưu");
+                    btnSave.setVisible(false); // Chờ sửa
+                } else {
+                    enableForm(false);
+                    btnAdd.setVisible(false);
+                    btnDelete.setVisible(false);
+                }
 
                 loadSupplierProducts(selectedSupID);
             }
@@ -264,7 +258,7 @@ public class SupplierManagerPanel extends JPanel {
         }
     }
 
-    // --- 4. XỬ LÝ SỰ KIỆN ---
+    // --- 5. SỰ KIỆN ---
     private void addEvents() {
         listSupplier.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -276,16 +270,15 @@ public class SupplierManagerPanel extends JPanel {
             }
         });
 
+        // Double click vào bảng sản phẩm -> Mở chi tiết sản phẩm
         tableProducts.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) { // Double click
+                if (e.getClickCount() == 2) {
                     int row = tableProducts.getSelectedRow();
                     if (row != -1) {
                         int proID = Integer.parseInt(tableProducts.getValueAt(row, 0).toString());
-
                         Window win = SwingUtilities.getWindowAncestor(SupplierManagerPanel.this);
-
                         if (win instanceof Main.DashBoard) {
                             ((Main.DashBoard) win).showProductAndLoad(proID);
                         }
@@ -301,157 +294,169 @@ public class SupplierManagerPanel extends JPanel {
         });
 
         txtPhone.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent e) {
-                if (!Character.isDigit(e.getKeyChar())) e.consume();
-            }
+            public void keyTyped(java.awt.event.KeyEvent e) { if (!Character.isDigit(e.getKeyChar())) e.consume(); }
         });
 
         btnSort.addActionListener(e -> {
-            currentSortIndex++;
-            if (currentSortIndex >= sortModes.length) {
-                currentSortIndex = 0;
-            }
+            currentSortIndex = (currentSortIndex + 1) % sortModes.length;
             btnSort.setText(sortModes[currentSortIndex]);
-            // Tooltip hướng dẫn
-            switch (currentSortIndex) {
-                case 0: btnSort.setToolTipText("A -> Z"); break;
-                case 1: btnSort.setToolTipText("Z -> A"); break;
-                case 2: btnSort.setToolTipText("Hợp tác gần đây nhất"); break;
-                case 3: btnSort.setToolTipText("Hợp tác lâu năm nhất"); break;
-            }
             loadListData();
         });
 
-        btnAdd.addActionListener(e -> {
-            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
-            AddSupplierDialog addSupplierDialog = new AddSupplierDialog(parentFrame);
-            addSupplierDialog.setVisible(true);
+        // --- NÚT THÊM MỚI ---
+        btnAdd.addActionListener(e -> prepareCreate());
 
-            if (addSupplierDialog.isAddedSuccess()) {
-                txtSearch.setText("");
-                loadListData();
-                int newID = addSupplierDialog.getNewSupplierID();
-                if (newID != -1) selectSupplierByID(newID);
-            }
-        });
+        // --- NÚT LƯU (Insert/Update) ---
+        btnSave.addActionListener(e -> saveSupplier());
 
-        btnSave.addActionListener(e -> {
-            if (txtName.getText().trim().isEmpty() ||
-                    txtPhone.getText().trim().isEmpty() ||
-                    txtAddress.getText().trim().isEmpty()) {
-                showError(this, "Vui lòng nhập đầy đủ thông tin!");
-                return;
-            }
+        // --- NÚT XÓA ---
+        btnDelete.addActionListener(e -> deleteSupplier());
+    }
 
-            try (Connection con = DBConnection.getConnection()) {
-                String strDate = cbYear.getSelectedItem() + "-" + cbMonth.getSelectedItem() + "-" + cbDay.getSelectedItem();
+    // --- CÁC HÀM LOGIC CHÍNH ---
+
+    private void prepareCreate() {
+        listSupplier.clearSelection();
+        selectedSupID = -1; // Mode thêm mới
+
+        isDataLoading = true;
+        txtName.setText(""); txtPhone.setText(""); txtAddress.setText(""); txtDescription.setText("");
+        cbDay.setSelectedIndex(0); cbMonth.setSelectedIndex(0); cbYear.setSelectedItem(String.valueOf(java.time.Year.now().getValue()));
+        modelProducts.setRowCount(0); // NCC mới chưa có SP
+        isDataLoading = false;
+
+        enableForm(true);
+        txtName.requestFocus();
+
+        btnAdd.setVisible(false);
+        btnDelete.setVisible(false);
+        btnSave.setText("Lưu");
+        btnSave.setVisible(true);
+    }
+
+    private void saveSupplier() {
+        if (txtName.getText().trim().isEmpty() || txtPhone.getText().trim().isEmpty()) {
+            showError(this, "Tên và SĐT là bắt buộc!");
+            return;
+        }
+
+        try (Connection con = DBConnection.getConnection()) {
+            String date = cbYear.getSelectedItem() + "-" + cbMonth.getSelectedItem() + "-" + cbDay.getSelectedItem();
+            String name = txtName.getText().trim();
+            String phone = txtPhone.getText().trim();
+            String addr = txtAddress.getText().trim();
+            String desc = txtDescription.getText().trim();
+
+            if (selectedSupID == -1) {
+                // INSERT
+                String sql = "INSERT INTO Suppliers (sup_name, sup_phone, sup_address, sup_start_date, sup_description) VALUES (?,?,?,?,?)";
+                PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                ps.setString(1, name); ps.setString(2, phone); ps.setString(3, addr);
+                ps.setString(4, date); ps.setString(5, desc);
+                ps.executeUpdate();
+
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    showSuccess(this, "Thêm thành công!");
+                    loadListData();
+                    selectSupplierByID(rs.getInt(1));
+                }
+            } else {
+                // UPDATE
                 String sql = "UPDATE Suppliers SET sup_name=?, sup_phone=?, sup_address=?, sup_start_date=?, sup_description=? WHERE sup_id=?";
                 PreparedStatement ps = con.prepareStatement(sql);
-
-                ps.setString(1, txtName.getText().trim());
-                ps.setString(2, txtPhone.getText().trim());
-                ps.setString(3, txtAddress.getText().trim());
-                ps.setString(4, strDate);
-                ps.setString(5, txtDescription.getText().trim());
+                ps.setString(1, name); ps.setString(2, phone); ps.setString(3, addr);
+                ps.setString(4, date); ps.setString(5, desc);
                 ps.setInt(6, selectedSupID);
 
                 if (ps.executeUpdate() > 0) {
                     showSuccess(this, "Cập nhật thành công!");
                     loadListData();
                     selectSupplierByID(selectedSupID);
-                    btnSave.setVisible(false);
-                }
-            } catch (Exception ex) {
-                showError(this, "Lỗi: " + ex.getMessage());
-            }
-        });
-
-        btnDelete.addActionListener(e -> {
-            if(showConfirm(this, "Xóa nhà cung cấp này?")){
-                try (Connection con = DBConnection.getConnection()) {
-                    PreparedStatement ps = con.prepareStatement("DELETE FROM Suppliers WHERE sup_id=?");
-                    ps.setInt(1, selectedSupID);
-                    if (ps.executeUpdate() > 0) {
-                        loadListData();
-                        clearForm();
-                    }
-                } catch (Exception ex) {
-                    if (ex.getMessage().contains("foreign key")) {
-                        showError(this, "Không thể xóa vì đang cung cấp sản phẩm!");
-                    } else {
-                        showError(this, "Lỗi: " + ex.getMessage());
-                    }
                 }
             }
-        });
+        } catch (Exception ex) {
+            showError(this, "Lỗi: " + ex.getMessage());
+        }
     }
 
-    // --- 5. THEO DÕI THAY ĐỔI ---
+    private void deleteSupplier() {
+        if(selectedSupID == -1) return;
+        if(showConfirm(this, "Xóa nhà cung cấp này?")){
+            try (Connection con = DBConnection.getConnection()) {
+                PreparedStatement ps = con.prepareStatement("DELETE FROM Suppliers WHERE sup_id=?");
+                ps.setInt(1, selectedSupID);
+                if (ps.executeUpdate() > 0) {
+                    showSuccess(this, "Đã xóa!");
+                    loadListData();
+                    clearForm();
+                }
+            } catch (Exception ex) {
+                if (ex.getMessage().contains("foreign key")) showError(this, "Không thể xóa: NCC đang cung cấp sản phẩm!");
+                else showError(this, "Lỗi: " + ex.getMessage());
+            }
+        }
+    }
+
+    // --- CÁC HÀM TIỆN ÍCH ---
+
     private void addChangeListeners() {
         SimpleDocumentListener docListener = new SimpleDocumentListener(e -> {
-            if (!isDataLoading) btnSave.setVisible(true);
+            if (!isDataLoading && Utils.Session.isAdmin()) {
+                btnSave.setVisible(true);
+                if (selectedSupID != -1) btnSave.setText("Lưu");
+            }
         });
-
         txtName.getDocument().addDocumentListener(docListener);
         txtPhone.getDocument().addDocumentListener(docListener);
         txtAddress.getDocument().addDocumentListener(docListener);
         txtDescription.getDocument().addDocumentListener(docListener);
 
-        ActionListener actionListener = e -> {
-            if (!isDataLoading) btnSave.setVisible(true);
-        };
-        cbDay.addActionListener(actionListener);
-        cbMonth.addActionListener(actionListener);
-        cbYear.addActionListener(actionListener);
-    }
-
-    // --- CÁC HÀM TIỆN ÍCH ---
-
-    private void initComboBoxData() {
-        for (int i = 1; i <= 31; i++) {
-            cbDay.addItem(String.format("%02d", i));
-        }
-        for (int i = 1; i <= 12; i++) {
-            cbMonth.addItem(String.format("%02d", i));
-        }
-        int currentYear = java.time.Year.now().getValue();
-        for (int i = currentYear; i >= 1990; i--) {
-            cbYear.addItem(String.valueOf(i));
-        }
+        ActionListener dateListener = e -> { if (!isDataLoading && Utils.Session.isAdmin()) btnSave.setVisible(true); };
+        cbDay.addActionListener(dateListener); cbMonth.addActionListener(dateListener); cbYear.addActionListener(dateListener);
     }
 
     private void clearForm() {
         isDataLoading = true;
-        txtName.setText(""); txtPhone.setText(""); txtAddress.setText("");
-        txtDescription.setText("");
-
-        if(cbYear.getItemCount() > 0) cbYear.setSelectedIndex(0);
-        if(cbMonth.getItemCount() > 0) cbMonth.setSelectedIndex(0);
-        if(cbDay.getItemCount() > 0) cbDay.setSelectedIndex(0);
-
+        txtName.setText(""); txtPhone.setText(""); txtAddress.setText(""); txtDescription.setText("");
         modelProducts.setRowCount(0);
+        isDataLoading = false;
 
+        enableForm(false);
+        selectedSupID = -1;
+
+        if (Utils.Session.isAdmin()) btnAdd.setVisible(true);
         btnSave.setVisible(false);
         btnDelete.setVisible(false);
-        enableForm(false);
-        isDataLoading = false;
     }
 
     private void enableForm(boolean enable) {
-        txtName.setEnabled(enable);
-        txtPhone.setEnabled(enable);
-        txtAddress.setEnabled(enable);
-        txtDescription.setEnabled(enable);
-        cbDay.setEnabled(enable);
-        cbMonth.setEnabled(enable);
-        cbYear.setEnabled(enable);
+        txtName.setEnabled(enable); txtPhone.setEnabled(enable);
+        txtAddress.setEnabled(enable); txtDescription.setEnabled(enable);
+        cbDay.setEnabled(enable); cbMonth.setEnabled(enable); cbYear.setEnabled(enable);
+    }
+
+    private void initComboBoxData() {
+        for (int i=1; i<=31; i++) cbDay.addItem(String.format("%02d", i));
+        for (int i=1; i<=12; i++) cbMonth.addItem(String.format("%02d", i));
+        for (int i=java.time.Year.now().getValue(); i>=1990; i--) cbYear.addItem(String.valueOf(i));
+    }
+
+    private void setComboBoxDate(String dateStr, JComboBox<String> d, JComboBox<String> m, JComboBox<String> y) {
+        if (dateStr != null && !dateStr.isEmpty()) {
+            String[] parts = dateStr.split("-");
+            if (parts.length == 3) {
+                y.setSelectedItem(parts[0]);
+                m.setSelectedItem(parts[1]);
+                d.setSelectedItem(parts[2]);
+            }
+        }
     }
 
     private void selectSupplierByID(int id) {
         ListModel<ComboItem> model = listSupplier.getModel();
         for (int i = 0; i < model.getSize(); i++) {
-            ComboItem item = model.getElementAt(i);
-            if (item.getValue() == id) {
+            if (model.getElementAt(i).getValue() == id) {
                 listSupplier.setSelectedIndex(i);
                 listSupplier.ensureIndexIsVisible(i);
                 break;
@@ -464,9 +469,7 @@ public class SupplierManagerPanel extends JPanel {
         selectSupplierByID(selectedSupID);
     }
 
-    @FunctionalInterface
-    interface DocumentUpdateListener { void update(DocumentEvent e); }
-
+    @FunctionalInterface interface DocumentUpdateListener { void update(DocumentEvent e); }
     static class SimpleDocumentListener implements DocumentListener {
         private final DocumentUpdateListener listener;
         public SimpleDocumentListener(DocumentUpdateListener listener) { this.listener = listener; }

@@ -328,6 +328,45 @@ public class Style {
         return p;
     }
 
+    // [MỚI] HÀM NÀY ĐƯỢC THÊM VÀO ĐỂ TẠO TEXT FIELD KÈM BUTTON BÊN CẠNH
+    /**
+     * Tạo Panel chứa TextField kèm Button nằm ngang hàng bên phải.
+     *
+     * @param tf JTextField nhập liệu.
+     * @param btn JButton chức năng bên cạnh.
+     * @param labelText Tiêu đề nhãn.
+     * @return JPanel hoàn chỉnh.
+     */
+    public static JPanel createTextFieldWithButton(JTextField tf, JButton btn, String labelText) {
+        JPanel p = new JPanel(new BorderLayout(5, 5));
+        p.setBackground(Color.WHITE);
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65)); // Chiều cao chuẩn
+
+        p.add(createTitleLabel(labelText), BorderLayout.NORTH);
+
+        JPanel pInput = new JPanel(new BorderLayout(5, 0));
+        pInput.setBackground(Color.WHITE);
+
+        // 1. Style TextField
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tf.setPreferredSize(new Dimension(0, 35));
+        tf.setBorder(new javax.swing.border.CompoundBorder(
+                new javax.swing.border.LineBorder(Color.decode("#bdc3c7"), 1),
+                new javax.swing.border.EmptyBorder(5, 10, 5, 10)
+        ));
+        installFocusAnimation(tf);
+
+        // 2. Style Button (đảm bảo chiều cao khớp với TextField)
+        Dimension d = btn.getPreferredSize();
+        btn.setPreferredSize(new Dimension(d.width > 0 ? d.width : 80, 35));
+
+        pInput.add(tf, BorderLayout.CENTER);
+        pInput.add(btn, BorderLayout.EAST);
+
+        p.add(pInput, BorderLayout.CENTER);
+        return p;
+    }
+
     /**
      * Tạo Panel chứa PasswordField kèm nhãn tiêu đề và Checkbox ẩn/hiện mật khẩu.
      *
@@ -380,24 +419,20 @@ public class Style {
     }
 
     /**
-     * Tạo thanh tìm kiếm kèm nút chức năng (Sắp xếp/Lọc) bên phải.
-     * Có xử lý placeholder text "Tìm kiếm...".
+     * Tạo thanh tìm kiếm đơn giản, không có nút bấm, có tiêu đề.
      *
      * @param textField Ô nhập liệu tìm kiếm.
-     * @param btnSort Nút chức năng bên cạnh.
-     * @param labelText Tiêu đề thanh tìm kiếm.
-     * @return JPanel hoàn chỉnh.
+     * @param labelText Tiêu đề của thanh tìm kiếm.
+     * @param placeholderText Placeholder text.
+     * @return JPanel chứa ô tìm kiếm.
      */
-    public static JPanel createSearchWithButtonPanel(JTextField textField, JButton btnSort, String labelText) {
+    public static JPanel createSearchPanel(JTextField textField, String labelText, String placeholderText) {
         JPanel pRoot = new JPanel(new BorderLayout(5, 5));
         pRoot.setBackground(Color.WHITE);
         pRoot.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
         pRoot.add(createTitleLabel(labelText), BorderLayout.NORTH);
 
-        JPanel pInputContainer = new JPanel(new BorderLayout(5, 0));
-        pInputContainer.setBackground(Color.WHITE);
-
-        textField.setText("Tìm kiếm...");
+        textField.setText(placeholderText);
         textField.setForeground(Color.GRAY);
         textField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         textField.setPreferredSize(new Dimension(0, 35));
@@ -410,7 +445,7 @@ public class Style {
         textField.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override
             public void focusGained(java.awt.event.FocusEvent e) {
-                if (textField.getText().equals("Tìm kiếm...")) {
+                if (textField.getText().equals(placeholderText)) {
                     textField.setText("");
                     textField.setForeground(Color.BLACK);
                 }
@@ -419,7 +454,56 @@ public class Style {
             public void focusLost(java.awt.event.FocusEvent e) {
                 if (textField.getText().isEmpty()) {
                     textField.setForeground(Color.GRAY);
-                    textField.setText("Tìm kiếm...");
+                    textField.setText(placeholderText);
+                }
+            }
+        });
+
+        pRoot.add(textField, BorderLayout.CENTER);
+        return pRoot;
+    }
+
+    /**
+     * Tạo thanh tìm kiếm kèm nút chức năng (Sắp xếp/Lọc) bên phải.
+     *
+     * @param textField Ô nhập liệu tìm kiếm.
+     * @param btnSort Nút chức năng bên cạnh.
+     * @param labelText Tiêu đề thanh tìm kiếm.
+     * @param placeholderText Placeholder text.
+     * @return JPanel hoàn chỉnh.
+     */
+    public static JPanel createSearchWithButtonPanel(JTextField textField, JButton btnSort, String labelText, String placeholderText) {
+        JPanel pRoot = new JPanel(new BorderLayout(5, 5));
+        pRoot.setBackground(Color.WHITE);
+        pRoot.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+        pRoot.add(createTitleLabel(labelText), BorderLayout.NORTH);
+
+        JPanel pInputContainer = new JPanel(new BorderLayout(5, 0));
+        pInputContainer.setBackground(Color.WHITE);
+
+        textField.setText(placeholderText);
+        textField.setForeground(Color.GRAY);
+        textField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        textField.setPreferredSize(new Dimension(0, 35));
+        textField.setBorder(new javax.swing.border.CompoundBorder(
+                new javax.swing.border.LineBorder(Color.decode("#bdc3c7"), 1),
+                new javax.swing.border.EmptyBorder(5, 10, 5, 10)
+        ));
+        installFocusAnimation(textField);
+
+        textField.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                if (textField.getText().equals(placeholderText)) {
+                    textField.setText("");
+                    textField.setForeground(Color.BLACK);
+                }
+            }
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                if (textField.getText().isEmpty()) {
+                    textField.setForeground(Color.GRAY);
+                    textField.setText(placeholderText);
                 }
             }
         });

@@ -17,17 +17,15 @@ public class AddInvoiceDetailDialog extends JDialog {
 
     // --- 1. KHAI BÁO BIẾN GIAO DIỆN ---
     private JComboBox<ComboItem> cbProduct;
-    private JTextField txtStock; // Ô hiển thị tồn kho (Mới)
+    private JTextField txtStock;
     private JTextField txtQuantity;
-    private JButton btnAdd, btnCancel;
+    private JButton btnSearchProduct, btnAdd, btnCancel;
 
     // --- 2. BIẾN DỮ LIỆU ---
     private boolean isConfirmed = false;
     private ComboItem selectedProduct = null;
     private int selectedQty = 0;
 
-    // Map để lưu trữ cặp: [ID Sản Phẩm] -> [Số Lượng Tồn]
-    // Giúp tra cứu nhanh mà không cần gọi lại DB hay cắt chuỗi
     private final Map<Integer, Integer> productStockMap = new HashMap<>();
 
     public AddInvoiceDetailDialog(Frame parent) {
@@ -35,10 +33,9 @@ public class AddInvoiceDetailDialog extends JDialog {
         setTitle("Thêm Sản Phẩm");
 
         initUI();
-        loadProductData(); // Load xong dữ liệu
-        addEvents();       // Mới gán sự kiện (để sự kiện chọn item chạy đúng)
+        loadProductData();
+        addEvents();
 
-        // Trigger chọn dòng đầu tiên để fill tồn kho ngay khi mở
         if (cbProduct.getItemCount() > 0) {
             cbProduct.setSelectedIndex(0);
         }
@@ -57,24 +54,21 @@ public class AddInvoiceDetailDialog extends JDialog {
         mainPanel.add(createHeaderLabel("CHỌN SẢN PHẨM"));
         mainPanel.add(Box.createVerticalStrut(20));
 
-        // 1. ComboBox Sản phẩm
         cbProduct = new JComboBox<>();
-        mainPanel.add(createComboBoxWithLabel(cbProduct, "Sản Phẩm:"));
+        btnSearchProduct = createSmallButton("Tìm", Color.GRAY);
+        mainPanel.add(createComboBoxWithLabel(cbProduct, "Sản Phẩm:", btnSearchProduct));
         mainPanel.add(Box.createVerticalStrut(15));
 
-        // 2. Ô Tồn kho - Read Only
         txtStock = new JTextField();
-        txtStock.setEditable(false); // Không cho sửa
-        txtStock.setFocusable(false); // Không cho focus vào
+        txtStock.setEditable(false);
+        txtStock.setFocusable(false);
         mainPanel.add(createTextFieldWithLabel(txtStock, "Tồn Kho Hiện Tại:"));
         mainPanel.add(Box.createVerticalStrut(15));
 
-        // 3. Ô Số lượng nhập
         txtQuantity = new JTextField("1");
         mainPanel.add(createTextFieldWithLabel(txtQuantity, "Số Lượng Mua:"));
         mainPanel.add(Box.createVerticalStrut(25));
 
-        // 4. Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         buttonPanel.setBackground(Color.WHITE);
 
@@ -92,7 +86,7 @@ public class AddInvoiceDetailDialog extends JDialog {
 
     private void loadProductData() {
         try (Connection con = DBConnection.getConnection()) {
-            String sql = "SELECT pro_ID, pro_name, pro_count FROM Products WHERE pro_count > 0";
+            String sql = "SELECT pro_ID, pro_name, pro_count FROM Products WHERE pro_count > 0 ORDER BY pro_name ASC";
             ResultSet rs = con.createStatement().executeQuery(sql);
 
             cbProduct.removeAllItems();
@@ -103,10 +97,7 @@ public class AddInvoiceDetailDialog extends JDialog {
                 String name = rs.getString("pro_name");
                 int count = rs.getInt("pro_count");
 
-                // 1. Thêm vào ComboBox (Chỉ hiện tên cho đẹp)
                 cbProduct.addItem(new ComboItem(name, id));
-
-                // 2. Lưu số lượng tồn vào Map (Bộ nhớ đệm)
                 productStockMap.put(id, count);
             }
         } catch (Exception e) {
@@ -115,22 +106,26 @@ public class AddInvoiceDetailDialog extends JDialog {
     }
 
     private void addEvents() {
-        // --- SỰ KIỆN 1: KHI CHỌN SẢN PHẨM -> FILL TỒN KHO ---
         cbProduct.addActionListener(e -> {
             ComboItem selected = (ComboItem) cbProduct.getSelectedItem();
             if (selected != null) {
                 int proID = selected.getValue();
-                // Lấy tồn kho từ Map ra (Nhanh và chính xác tuyệt đối)
-                if (productStockMap.containsKey(proID)) {
-                    int stock = productStockMap.get(proID);
-                    txtStock.setText(String.valueOf(stock));
-                } else {
-                    txtStock.setText("0");
-                }
+                int stock = productStockMap.getOrDefault(proID, 0);
+                txtStock.setText(String.valueOf(stock));
             }
         });
 
-        // --- SỰ KIỆN 2: CHẶN NHẬP CHỮ VÀO Ô SỐ LƯỢNG ---
+        btnSearchProduct.addActionListener(e -> {
+            Frame parent = (Frame) SwingUtilities.getWindowAncestor(this);
+            SearchProductDialog dialog = new SearchProductDialog(parent);
+            dialog.setVisible(true);
+
+            ComboItem selected = dialog.getSelectedProduct();
+            if (selected != null) {
+                setSelectedComboItem(cbProduct, selected.getValue());
+            }
+        });
+
         txtQuantity.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent e) {
                 if (!Character.isDigit(e.getKeyChar())) {
@@ -139,7 +134,6 @@ public class AddInvoiceDetailDialog extends JDialog {
             }
         });
 
-        // --- SỰ KIỆN 3: NÚT XÁC NHẬN ---
         btnAdd.addActionListener(e -> {
             try {
                 String qtyText = txtQuantity.getText().trim();
@@ -179,6 +173,15 @@ public class AddInvoiceDetailDialog extends JDialog {
         });
 
         btnCancel.addActionListener(e -> dispose());
+    }
+
+    private void setSelectedComboItem(JComboBox<ComboItem> cb, int id) {
+        for (int i = 0; i < cb.getItemCount(); i++) {
+            if (cb.getItemAt(i).getValue() == id) {
+                cb.setSelectedIndex(i);
+                return;
+            }
+        }
     }
 
     public boolean isConfirmed() { return isConfirmed; }

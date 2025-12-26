@@ -47,12 +47,12 @@ public class InvoiceStatsPanel extends JPanel {
             JButton btnExport = createSmallButton("Xuất Excel", Color.decode("#1D6F42"));
             btnExport.setPreferredSize(new Dimension(100, 35));
             btnExport.addActionListener(e -> {
-                String fileName = "Top_Hóa_Đơn_" + currentPeriod.replace(" ", "_");
+                String fileName = "Danh_Sách_Hóa_Đơn_" + currentPeriod.replace(" ", "_");
                 exportToExcel(table, fileName);
             });
-            pTableWrapper = createTableWithLabel(table, "TOP HÓA ĐƠN TỔNG TIỀN NHIỀU NHẤT", btnExport);
+            pTableWrapper = createTableWithLabel(table, "DANH SÁCH HÓA ĐƠN", btnExport);
         } else {
-            pTableWrapper = createTableWithLabel(table, "TOP HÓA ĐƠN TỔNG TIỀN NHIỀU NHẤT");
+            pTableWrapper = createTableWithLabel(table, "DANH SÁCH HÓA ĐƠN");
         }
         this.add(pTableWrapper, BorderLayout.CENTER);
 
@@ -71,7 +71,7 @@ public class InvoiceStatsPanel extends JPanel {
 
     public void loadData(String period) {
         this.currentPeriod = period;
-        setTableTitle("TOP HÓA ĐƠN TỔNG TIỀN NHIỀU NHẤT (" + period.toUpperCase() + ")");
+        setTableTitle("DANH SÁCH HÓA ĐƠN (" + period.toUpperCase() + ")");
         tableModel.setRowCount(0);
         String dateFilter = getSqlDateFilter(period);
 
@@ -80,7 +80,7 @@ public class InvoiceStatsPanel extends JPanel {
                 "LEFT JOIN Customers c ON i.cus_ID = c.cus_ID " +
                 "LEFT JOIN Staffs s ON i.sta_ID = s.sta_ID " +
                 "WHERE " + dateFilter + " " +
-                "ORDER BY i.inv_price DESC LIMIT 20";
+                "ORDER BY i.inv_price DESC"; // Đã bỏ LIMIT 20
 
         try (Connection con = DBConnection.getConnection()) {
             ResultSet rs = con.createStatement().executeQuery(sql);
